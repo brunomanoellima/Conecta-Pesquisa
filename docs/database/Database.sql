@@ -1,4 +1,4 @@
-CREATE DATABASE conecta_pesquisa_db;
+CREATE DATABASE IF NOT EXISTS conecta_pesquisa_db;
 USE conecta_pesquisa_db;
 
 -- Tabela Usuários
@@ -27,7 +27,7 @@ CREATE TABLE projects (
     FOREIGN KEY (docente_id) REFERENCES users(id)
 );
 
--- Tabela Candidaturas
+-- Tabela Candidaturas (CORRIGIDA COM UPDATED_AT)
 CREATE TABLE applications (
     id INT AUTO_INCREMENT PRIMARY KEY,
     project_id INT NOT NULL,
@@ -35,12 +35,7 @@ CREATE TABLE applications (
     mensagem TEXT,
     status ENUM('PENDENTE', 'ACEITA', 'RECUSADA') DEFAULT 'PENDENTE',
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP, -- Adicionado aqui
     FOREIGN KEY (project_id) REFERENCES projects(id),
     FOREIGN KEY (discente_id) REFERENCES users(id)
 );
-
--- Inserir 1 Docente (senha: 123456) e 1 Discente (senha: 123456)
--- Hash gerado para '123456' é $2a$10$x/.. (exemplo fictício, usaremos bcrypt no código)
-INSERT INTO users (nome, email, password_hash, role) VALUES 
-('Prof. Bruno', 'docente@teste.com', '$2a$10$EixZaYVK1fsnwKzl.1//oubne/L7qCP.5.D.Z/..ExemploHash', 'docente'),
-('Aluno João', 'aluno@teste.com', '$2a$10$EixZaYVK1fsnwKzl.1//oubne/L7qCP.5.D.Z/..ExemploHash', 'discente');
