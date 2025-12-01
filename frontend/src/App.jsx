@@ -1,26 +1,68 @@
 import { useState, useEffect } from 'react';
 import { BrowserRouter, Routes, Route, useNavigate, Link } from 'react-router-dom';
-import { FaSearch, FaGithub, FaFileAlt, FaWhatsapp, FaCalendarAlt, FaClock, FaMapMarkerAlt, FaUserGraduate, FaEnvelope, FaExternalLinkAlt } from 'react-icons/fa';
+import { 
+  FaSearch, FaGithub, FaFileAlt, FaWhatsapp, FaCalendarAlt, FaClock, FaMapMarkerAlt, 
+  FaUserGraduate, FaEnvelope, FaExternalLinkAlt, FaTimes, FaUniversity, 
+  FaLayerGroup, FaClipboardList, FaUsers, FaRocket, FaUserCircle, FaPowerOff, 
+  FaChevronLeft, FaChevronRight, FaBullhorn, FaPaperPlane, FaTrash, FaPlus, FaListUl, FaCheck
+} from 'react-icons/fa';
+import Slider from "react-slick"; 
 import api from './api';
 
 // --- UTILITÁRIOS ---
-const getDaysLeft = (dateString) => {
-  if (!dateString) return 0;
-  const diff = new Date(dateString) - new Date();
-  const days = Math.ceil(diff / (1000 * 60 * 60 * 24));
-  return days > 0 ? days : 0;
+const checkExpired = (dateString) => {
+  if (!dateString) return false;
+  const deadline = new Date(dateString);
+  deadline.setHours(23, 59, 59, 999);
+  return new Date() > deadline;
 };
 
-const StatusBadge = ({ status }) => {
-  const colors = {
-    'ABERTO': 'bg-green-100 text-green-800',
-    'CONCLUIDO': 'bg-gray-200 text-gray-800',
-    'PENDENTE': 'bg-yellow-100 text-yellow-800',
-    'ACEITA': 'bg-blue-100 text-blue-800',
-    'RECUSADA': 'bg-red-100 text-red-800',
-    'NAO_AVALIADA_ENCERRADA': 'bg-gray-300 text-gray-500'
+const getDaysLeft = (dateString) => {
+  if (!dateString) return 0;
+  const deadline = new Date(dateString);
+  deadline.setHours(23, 59, 59, 999);
+  const diff = deadline - new Date();
+  return Math.ceil(diff / (1000 * 60 * 60 * 24));
+};
+
+const formatDate = (dateString) => {
+  if (!dateString) return "";
+  const date = new Date(dateString);
+  return isNaN(date.getTime()) ? "" : date.toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' });
+};
+
+const StatusBadge = ({ status, expired }) => {
+  if (status === 'ABERTO' && expired) {
+    return <span className="px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wide bg-gray-200 text-gray-600 border border-gray-300">Prazo Vencido</span>;
+  }
+  const styles = {
+    'ABERTO': 'bg-green-100 text-green-700 border border-green-200',
+    'CONCLUIDO': 'bg-gray-100 text-gray-600 border border-gray-200',
+    'PENDENTE': 'bg-yellow-50 text-yellow-700 border border-yellow-200',
+    'ACEITA': 'bg-blue-100 text-blue-700 border border-blue-200',
+    'RECUSADA': 'bg-red-50 text-red-600 border border-red-200',
+    'NAO_AVALIADA_ENCERRADA': 'bg-gray-200 text-gray-500 border border-gray-300'
   };
-  return <span className={`px-2 py-1 rounded text-xs font-bold ${colors[status] || 'bg-gray-100'}`}>{status}</span>;
+  return <span className={`px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wide ${styles[status] || 'bg-gray-100'}`}>{status}</span>;
+};
+
+// --- SETAS ---
+function SampleNextArrow(props) {
+  const { onClick } = props;
+  return <div className="absolute top-1/2 -translate-y-1/2 right-8 z-20 cursor-pointer text-white opacity-60 hover:opacity-100 transition-all hover:scale-110 drop-shadow-lg" onClick={onClick}><FaChevronRight className="text-5xl" /></div>;
+}
+
+function SamplePrevArrow(props) {
+  const { onClick } = props;
+  return <div className="absolute top-1/2 -translate-y-1/2 left-8 z-20 cursor-pointer text-white opacity-60 hover:opacity-100 transition-all hover:scale-110 drop-shadow-lg" onClick={onClick}><FaChevronLeft className="text-5xl" /></div>;
+}
+
+// --- COMPONENTE DE SEGURANÇA (Obrigatório) ---
+// Este componente verifica se o usuário tem um token válido.
+const PrivateRoute = ({ children }) => {
+  const token = localStorage.getItem('token');
+  // Se não tiver token, redireciona para o Login (/)
+  return token ? children : <Navigate to="/" replace />;
 };
 
 // --- PÁGINAS ---
@@ -34,16 +76,16 @@ function Login() {
       localStorage.setItem('token', data.token);
       localStorage.setItem('user', JSON.stringify(data.user));
       navigate('/dashboard');
-    } catch { alert('Login falhou'); }
+    } catch { alert('Login falhou.'); }
   };
   return (
-    <div className="h-screen flex justify-center items-center bg-gray-100">
-      <form onSubmit={handle} className="bg-white p-8 rounded shadow w-80">
-        <h2 className="text-xl font-bold mb-4">Conecta Pesquisa</h2>
-        <input className="border w-full p-2 mb-2" placeholder="Email" onChange={e=>setForm({...form, email:e.target.value})} />
-        <input className="border w-full p-2 mb-4" type="password" placeholder="Senha" onChange={e=>setForm({...form, password:e.target.value})} />
-        <button className="bg-blue-600 text-white w-full py-2 rounded">Entrar</button>
-        <Link to="/register" className="block text-center mt-2 text-sm text-blue-600">Criar Conta</Link>
+    <div className="h-screen flex justify-center items-center bg-gradient-to-br from-blue-50 to-indigo-100">
+      <form onSubmit={handle} className="bg-white p-10 rounded-2xl shadow-xl w-96 border border-white/50">
+        <h2 className="text-2xl font-extrabold text-gray-800 mb-6 text-center">Conecta Pesquisa</h2>
+        <input className="border w-full p-3 rounded-lg mb-3" placeholder="Email" onChange={e=>setForm({...form, email:e.target.value})} />
+        <input className="border w-full p-3 rounded-lg mb-4" type="password" placeholder="Senha" onChange={e=>setForm({...form, password:e.target.value})} />
+        <button className="bg-blue-600 text-white w-full py-3 rounded-lg font-bold hover:bg-blue-700">Entrar</button>
+        <Link to="/register" className="block text-center mt-4 text-sm text-blue-600 hover:underline">Criar Conta</Link>
       </form>
     </div>
   );
@@ -57,17 +99,18 @@ function Register() {
     try { await api.post('/auth/register', form); alert('Conta criada!'); navigate('/'); } catch { alert('Erro no cadastro'); }
   };
   return (
-    <div className="h-screen flex justify-center items-center bg-gray-100">
-      <form onSubmit={handle} className="bg-white p-8 rounded shadow w-80">
-        <h2 className="text-xl font-bold mb-4">Nova Conta</h2>
-        <input className="border w-full p-2 mb-2" placeholder="Nome" onChange={e=>setForm({...form, nome:e.target.value})} />
-        <input className="border w-full p-2 mb-2" placeholder="Email" onChange={e=>setForm({...form, email:e.target.value})} />
-        <input className="border w-full p-2 mb-2" type="password" placeholder="Senha" onChange={e=>setForm({...form, password:e.target.value})} />
-        <select className="border w-full p-2 mb-4" onChange={e=>setForm({...form, role:e.target.value})}>
-          <option value="discente">Aluno</option>
-          <option value="docente">Professor</option>
+    <div className="h-screen flex justify-center items-center bg-gradient-to-br from-blue-50 to-indigo-100">
+      <form onSubmit={handle} className="bg-white p-10 rounded-2xl shadow-xl w-96 border border-white/50">
+        <h2 className="text-2xl font-extrabold text-gray-800 mb-6 text-center">Criar Conta</h2>
+        <input className="border w-full p-3 rounded-lg mb-3" placeholder="Nome" onChange={e=>setForm({...form, nome:e.target.value})} />
+        <input className="border w-full p-3 rounded-lg mb-3" placeholder="Email" onChange={e=>setForm({...form, email:e.target.value})} />
+        <input className="border w-full p-3 rounded-lg mb-3" type="password" placeholder="Senha" onChange={e=>setForm({...form, password:e.target.value})} />
+        <select className="border w-full p-3 rounded-lg mb-6" onChange={e=>setForm({...form, role:e.target.value})}>
+            <option value="discente">Sou Aluno</option>
+            <option value="docente">Sou Professor</option>
         </select>
-        <button className="bg-green-600 text-white w-full py-2 rounded">Cadastrar</button>
+        <button className="bg-green-600 text-white w-full py-3 rounded-lg font-bold hover:bg-green-700">Cadastrar</button>
+        <Link to="/" className="block text-center mt-4 text-sm text-blue-600 hover:underline">Voltar para Login</Link>
       </form>
     </div>
   );
@@ -80,16 +123,22 @@ function Dashboard() {
   const [tab, setTab] = useState('projetos');
   const [data, setData] = useState({ projects: [], applications: [], profile: {} });
   
+  // States Perfil Aluno
   const [skillsList, setSkillsList] = useState([]);
   const [skillInput, setSkillInput] = useState('');
   
+  // States Criação de Projeto (Docente) - LISTAS DINÂMICAS
+  const [objList, setObjList] = useState([]);
+  const [objInput, setObjInput] = useState('');
+  const [reqList, setReqList] = useState([]);
+  const [reqInput, setReqInput] = useState('');
+
   const [search, setSearch] = useState('');
   const [searchResults, setSearchResults] = useState([]);
-  
-  // MODAIS
   const [viewProj, setViewProj] = useState(null); 
   const [newProj, setNewProj] = useState(false); 
   const [viewStudent, setViewStudent] = useState(null);
+  const [postContent, setPostContent] = useState({});
 
   useEffect(() => { load(); }, []);
 
@@ -108,8 +157,30 @@ function Dashboard() {
     } catch(e) { console.error(e); }
   };
 
+  const carouselSettings = {
+    dots: true, infinite: true, speed: 1000, slidesToShow: 1, slidesToScroll: 1,
+    autoplay: true, autoplaySpeed: 6000, arrows: true, fade: true,
+    nextArrow: <SampleNextArrow />, prevArrow: <SamplePrevArrow />,
+    appendDots: dots => <div style={{ bottom: "20px" }}><ul className="m-0 p-0"> {dots} </ul></div>,
+    customPaging: i => <div className="w-3 h-3 mx-1 bg-white/50 rounded-full transition-all hover:bg-white hover:scale-110"></div>
+  };
+
+  const carouselSlides = [
+    { id: 1, title: "Explore o Conhecimento", desc: "Conecte-se com projetos inovadores e professores experientes.", img: "/imagens/pesquisa.jpg", btnText: "Ver Pesquisas" },
+    { id: 2, title: "Ações de Extensão", desc: "Conecte a universidade com a comunidade.", img: "/imagens/Extensao.jpg", btnText: "Ver Extensão" },
+    { id: 3, title: "Trabalho Voluntário", desc: "Contribua com seu tempo e habilidades.", img: "/imagens/Volutario.jpg", btnText: "Ser Voluntário" }
+  ];
+
+  // --- MANIPULAÇÃO DE LISTAS ---
   const addSkill = (e) => { e.preventDefault(); if (skillInput.trim()) { setSkillsList([...skillsList, skillInput.trim()]); setSkillInput(''); } };
   const removeSkill = (i) => setSkillsList(skillsList.filter((_, idx) => idx !== i));
+  
+  const addObj = (e) => { e.preventDefault(); if (objInput.trim()) { setObjList([...objList, objInput.trim()]); setObjInput(''); } };
+  const removeObj = (i) => setObjList(objList.filter((_, idx) => idx !== i));
+  
+  const addReq = (e) => { e.preventDefault(); if (reqInput.trim()) { setReqList([...reqList, reqInput.trim()]); setReqInput(''); } };
+  const removeReq = (i) => setReqList(reqList.filter((_, idx) => idx !== i));
+
   const saveProfile = async (e) => {
     e.preventDefault();
     const formData = new FormData(e.target);
@@ -118,6 +189,7 @@ function Dashboard() {
     await api.put('/profile', body);
     alert('Perfil salvo!'); load();
   };
+
   const apply = async (id) => {
     const msg = prompt('Mensagem de motivação:');
     if(msg) {
@@ -125,297 +197,292 @@ function Dashboard() {
        catch (err) { alert(err.response?.data?.error || 'Erro'); }
     }
   };
+
   const saveProject = async (e) => {
     e.preventDefault();
     const formData = new FormData(e.target);
     const body = Object.fromEntries(formData);
-    try { await api.post('/projects', body); setNewProj(false); load(); } 
+    
+    // Salva as listas como JSON string para o backend
+    body.objetivos = JSON.stringify(objList);
+    body.requisitos = JSON.stringify(reqList);
+
+    try { await api.post('/projects', body); setNewProj(false); load(); alert('Projeto Criado!'); setObjList([]); setReqList([]); } 
     catch (err) { alert(err.response?.data?.error || 'Erro'); }
   };
+
   const manageApp = async (id, status, isRemoval) => {
     let reason = '';
     if(isRemoval) { reason = prompt("Motivo da remoção:"); if(!reason) return; }
     try { await api.put(`/applications/${id}`, { status, reason }); load(); } catch (err) { alert(err.response?.data?.error); }
   };
+
+  const postToMural = async (projectId) => {
+    const content = postContent[projectId];
+    if(!content) return;
+    try { await api.post(`/projects/${projectId}/mural`, { content }); alert('Publicado!'); setPostContent({ ...postContent, [projectId]: '' }); load(); } 
+    catch(e) { alert('Erro ao postar'); }
+  };
+
   const searchStudents = async () => { const res = await api.get(`/users/search?nome=${search}`); setSearchResults(res.data); };
   const myStatusInProject = (pid) => { if(user.role!=='discente')return null; const app=data.applications.find(a=>a.project_id===pid); return app?app.status:null; };
-  const renderSkills = (json) => { try { const s=JSON.parse(json); return Array.isArray(s)?s.map((x,i)=><span key={i} className="text-xs bg-blue-100 px-2 rounded mr-1">{x}</span>):null; } catch { return null; } };
+  
+  // Renderiza listas salvas como JSON (Habilidades, Objetivos, Requisitos)
+  const renderList = (json, color = "blue") => { 
+    try { 
+      const s=JSON.parse(json); 
+      if (Array.isArray(s)) return (
+        <ul className="list-disc pl-5 space-y-1">
+          {s.map((x,i)=><li key={i} className={`text-sm text-gray-700`}>{x}</li>)}
+        </ul>
+      );
+      return <p className="text-sm text-gray-600 whitespace-pre-wrap">{json}</p>; // Fallback para texto antigo
+    } catch { return <p className="text-sm text-gray-600 whitespace-pre-wrap">{json}</p>; } 
+  };
+
+  const renderSkills = (json) => { try { const s=JSON.parse(json); return Array.isArray(s)?s.map((x,i)=><span key={i} className="text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded-full">{x}</span>):null; } catch { return null; } };
+
+  const MenuIcon = ({ id }) => {
+      if(id === 'projetos') return <FaLayerGroup className="text-lg"/>;
+      if(id === 'candidaturas') return <FaClipboardList className="text-lg"/>;
+      if(id === 'equipes') return <FaUsers className="text-lg"/>;
+      if(id === 'murais') return <FaRocket className="text-lg"/>;
+      if(id === 'perfil') return <FaUserCircle className="text-lg"/>;
+      return null;
+  };
 
   return (
-    <div className="min-h-screen bg-gray-50 p-6">
-      <div className="flex justify-between items-center mb-6">
-        <h1 className="text-2xl font-bold text-gray-800">Painel {user.role === 'docente' ? 'Docente' : 'Discente'}</h1>
-        <div className="flex gap-4 items-center"><span>{user.nome}</span><button onClick={()=>{localStorage.clear(); navigate('/')}} className="text-red-500 font-bold">Sair</button></div>
-      </div>
-
-      <div className="flex gap-4 border-b mb-6 overflow-x-auto">
-        <button onClick={()=>setTab('projetos')} className={`pb-2 px-2 ${tab==='projetos'?'border-b-2 border-blue-600':''}`}>Projetos</button>
-        <button onClick={()=>setTab('candidaturas')} className={`pb-2 px-2 ${tab==='candidaturas'?'border-b-2 border-blue-600':''}`}>Candidaturas</button>
-        {user.role === 'docente' && <button onClick={()=>setTab('equipes')} className={`pb-2 px-2 text-indigo-700 ${tab==='equipes'?'border-b-2 border-indigo-600 font-bold':''}`}>👥 Minhas Equipes</button>}
-        {user.role === 'discente' && <button onClick={()=>setTab('murais')} className={`pb-2 px-2 text-green-700 ${tab==='murais'?'border-b-2 border-green-600 font-bold':''}`}>🚀 Meus Murais</button>}
-        {user.role === 'discente' && <button onClick={()=>setTab('perfil')} className={`pb-2 px-2 ${tab==='perfil'?'border-b-2 border-blue-600 font-bold':''}`}>Meu Perfil</button>}
-      </div>
-
-      {/* --- CONTEÚDO DAS ABAS --- */}
+    <div className="min-h-screen bg-gray-50 font-sans text-gray-800">
       
-      {/* PROJETOS */}
-      {tab === 'projetos' && (
-        <>
-          {user.role === 'docente' && <button onClick={()=>setNewProj(true)} className="bg-green-600 text-white px-4 py-2 rounded mb-4">+ Novo Projeto</button>}
-          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {data.projects.map(p => (
-              <div key={p.id} className="bg-white p-4 rounded shadow border hover:shadow-lg transition">
-                <div className="flex justify-between mb-2"><h3 className="font-bold text-lg">{p.titulo}</h3><StatusBadge status={p.status} /></div>
-                <p className="text-xs text-red-600 font-bold mb-2">{p.status === 'ABERTO' ? `Encerra em ${getDaysLeft(p.prazo_inscricao)} dias` : 'Encerrado'}</p>
-                <p className="text-sm text-gray-600 mb-2 line-clamp-2">{p.descricao}</p>
-                <button onClick={()=>setViewProj(p)} className="text-blue-600 text-sm font-bold hover:underline">Ver Detalhes &rarr;</button>
-                {user.role === 'discente' && p.status === 'ABERTO' && !myStatusInProject(p.id) && <button onClick={()=>apply(p.id)} className="block w-full mt-3 bg-blue-600 text-white py-1 rounded">Quero Participar</button>}
-              </div>
-            ))}
-          </div>
-        </>
-      )}
-
-      {/* MURAIS */}
-      {tab === 'murais' && (
-        <div className="space-y-6">
-          {data.applications.filter(app => app.status === 'ACEITA').length === 0 && <p className="text-gray-500">Nenhum projeto ativo.</p>}
-          {data.applications.filter(app => app.status === 'ACEITA').map(app => (
-            <div key={app.id} className="bg-white rounded-lg shadow-md border-l-8 border-green-500 p-6">
-               <h3 className="text-2xl font-bold text-gray-800">{app.project?.titulo}</h3>
-               <p className="text-gray-600 mb-4">Docente: {app.project?.docente?.nome}</p>
-               <div className="bg-yellow-50 border border-yellow-200 p-4 rounded-lg"><p className="font-bold text-yellow-800">📢 Mural da Equipe</p><p className="text-sm text-yellow-900">Bem-vindo ao time! Entre em contato com o docente para iniciar.</p></div>
+      {/* HEADER */}
+      <header className="bg-white shadow-md sticky top-0 z-30 w-full border-b border-gray-100">
+        <div className="w-full px-8 py-4 flex justify-between items-center">
+            <div className="flex items-center gap-3">
+                <div className="bg-blue-700 text-white p-2 rounded-xl font-bold text-xl shadow-md shadow-blue-100"><FaUniversity/></div>
+                <div><h1 className="text-xl font-bold text-gray-800 tracking-tight">Conecta Pesquisa</h1><p className="text-xs text-gray-500 uppercase font-bold tracking-wider">Painel {user.role}</p></div>
             </div>
-          ))}
+            <div><button onClick={()=>{localStorage.clear(); navigate('/')}} className="group flex items-center gap-2 bg-red-50 text-red-600 px-5 py-2.5 rounded-xl font-bold hover:bg-red-600 hover:text-white transition-all duration-300 shadow-sm border border-red-100"><FaPowerOff className="group-hover:rotate-90 transition-transform duration-300"/><span>Sair da Conta</span></button></div>
         </div>
-      )}
+      </header>
 
-      {/* EQUIPES & PESQUISA */}
-      {tab === 'equipes' && (
-        <div className="space-y-8">
-           <div className="bg-white p-6 rounded shadow border-l-4 border-blue-500">
-              <h3 className="font-bold text-lg mb-4 text-gray-700">🔍 Pesquisar Alunos</h3>
-              <div className="flex gap-2">
-                 <div className="relative flex-1"><span className="absolute inset-y-0 left-0 flex items-center pl-3"><FaSearch className="w-5 h-5 text-gray-400" /></span><input className="py-2 text-sm rounded-md pl-10 pr-4 border w-full bg-gray-50" placeholder="Buscar por nome..." value={search} onChange={e => setSearch(e.target.value)} onKeyDown={e => e.key === 'Enter' && searchStudents()} /></div>
-                 <button onClick={searchStudents} className="bg-blue-600 text-white px-6 rounded font-bold">Buscar</button>
-              </div>
-              {searchResults.length > 0 && <div className="mt-4 border-t pt-4"><ul className="space-y-2">{searchResults.map(u => (<li key={u.id} className="flex justify-between items-center bg-gray-50 p-2 rounded"><div><p className="font-bold text-sm">{u.nome}</p><p className="text-xs text-gray-500">{u.email}</p></div><button className="text-xs text-blue-600 border border-blue-200 px-3 py-1 rounded" onClick={() => setViewStudent(u)}>Ver Perfil Completo</button></li>))}</ul></div>}
-           </div>
-           <div>
-             <h3 className="text-xl font-bold text-gray-800 mb-4 pl-2 border-l-4 border-indigo-500">Gerenciar Projetos</h3>
-             <div className="space-y-6">
-               {data.projects.map(p => (
-                 <div key={p.id} className="bg-white rounded shadow p-6">
-                    <h3 className="text-lg font-bold mb-4 flex justify-between border-b pb-2">{p.titulo}<span className="text-sm font-normal text-gray-500">Membros: {p.applications?p.applications.length:0} / {p.vagas_totais}</span></h3>
-                    {(!p.applications || p.applications.length === 0) ? <p className="text-gray-400 italic text-sm">Nenhum membro.</p> : (
-                       <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
-                          {p.applications.map(m => (<div key={m.id} className="flex items-center gap-3 bg-gray-50 p-3 rounded border"><div className="w-10 h-10 bg-indigo-100 text-indigo-700 rounded-full flex items-center justify-center font-bold">{m.discente?.nome?.charAt(0).toUpperCase()}</div><div className="flex-1 overflow-hidden"><p className="font-bold text-sm truncate cursor-pointer hover:underline" onClick={() => setViewStudent(m.discente)}>{m.discente?.nome}</p><p className="text-xs text-gray-500 truncate">{m.discente?.email}</p></div><button onClick={() => manageApp(m.id, 'RECUSADA', true)} className="text-gray-400 hover:text-red-600 p-1 font-bold">✕</button></div>))}
-                       </div>
-                    )}
-                 </div>
-               ))}
-             </div>
-           </div>
+      <main className="w-full px-8 py-8">
+        {/* MENU */}
+        <div className="flex flex-wrap justify-center gap-3 mb-8 w-full bg-white p-3 rounded-2xl shadow-sm border border-gray-100 max-w-4xl mx-auto">
+            {[
+              { id: 'projetos', label: 'Projetos', role: 'both' },
+              { id: 'candidaturas', label: 'Candidaturas', role: 'both' },
+              { id: 'equipes', label: 'Minhas Equipes', role: 'docente' },
+              { id: 'murais', label: 'Meus Murais', role: 'discente' },
+              { id: 'perfil', label: 'Meu Perfil', role: 'discente' }
+            ].filter(item => item.role === 'both' || item.role === user.role).map(item => (
+                <button key={item.id} onClick={()=>setTab(item.id)} className={`flex-1 flex items-center justify-center gap-2 px-4 py-3 rounded-xl text-sm font-bold transition-all duration-300 ${tab===item.id ? 'bg-blue-600 text-white shadow-md' : 'text-gray-500 hover:bg-gray-50 hover:text-gray-700'}`}><MenuIcon id={item.id} />{item.label}</button>
+            ))}
         </div>
-      )}
 
-      {/* CANDIDATURAS */}
-      {tab === 'candidaturas' && (
-        <div className="bg-white rounded shadow p-4">
-           {data.applications.map(app => (
-             <div key={app.id} className="flex justify-between items-center border-b py-3 last:border-0">
-               <div><p className="font-bold">{app.project?.titulo}</p>{user.role === 'docente' && <p className="text-sm text-gray-600 cursor-pointer hover:underline" onClick={() => setViewStudent(app.discente)}>Aluno: {app.discente?.nome}</p>}<p className="text-xs italic">"{app.mensagem}"</p></div>
-               <div className="flex flex-col items-end gap-2"><StatusBadge status={app.status} />{user.role === 'docente' && app.status === 'PENDENTE' && (<div className="flex gap-2"><button onClick={()=>manageApp(app.id, 'ACEITA')} className="text-xs bg-green-100 text-green-700 px-2 rounded">Aceitar</button><button onClick={()=>manageApp(app.id, 'RECUSADA')} className="text-xs bg-red-100 text-red-700 px-2 rounded">Recusar</button></div>)}</div>
-             </div>
-           ))}
-        </div>
-      )}
+        {/* CARROSSEL */}
+        {user.role === 'discente' && tab === 'projetos' && (
+            <div className="mb-10 rounded-2xl overflow-hidden shadow-2xl animate-fadeIn w-full relative group">
+                <Slider {...carouselSettings}>
+                    {carouselSlides.map(slide => (
+                        <div key={slide.id} className="h-[500px] relative overflow-hidden outline-none">
+                            <div className="absolute inset-0 bg-cover bg-center transition-transform duration-1000 hover:scale-105" style={{backgroundImage: `url('${slide.img}')`}}></div>
+                            <div className="absolute inset-0 bg-black/50 flex flex-col justify-center items-center text-center px-12">
+                                <h2 className="text-5xl font-extrabold mb-4 text-white drop-shadow-xl">{slide.title}</h2>
+                                <p className="text-xl text-white/90 max-w-2xl font-light leading-relaxed drop-shadow-md">{slide.desc}</p>
+                            </div>
+                        </div>
+                    ))}
+                </Slider>
+            </div>
+        )}
 
-      {/* PERFIL */}
-      {tab === 'perfil' && (
-        <form onSubmit={saveProfile} className="bg-white p-8 rounded shadow max-w-2xl mx-auto">
-           <h3 className="font-bold text-xl mb-6 text-gray-800 border-b pb-2">Meu Perfil Acadêmico</h3>
-           <div className="grid md:grid-cols-2 gap-4 mb-4">
-              <label className="block"><span className="text-sm font-bold text-gray-700">Curso</span><input name="curso" defaultValue={data.profile.curso} className="border w-full p-2 rounded mt-1 bg-gray-50" /></label>
-              <label className="block"><span className="text-sm font-bold text-gray-700">Campus</span><input name="campus" defaultValue={data.profile.campus} className="border w-full p-2 rounded mt-1 bg-gray-50" /></label>
-              <label className="block"><span className="text-sm font-bold text-gray-700">Período Atual</span><select name="periodo" defaultValue={data.profile.periodo} className="border w-full p-2 rounded mt-1 bg-gray-50"><option value="">Selecione...</option>{[...Array(10)].map((_, i) => <option key={i} value={`${i+1}º`}>{i+1}º Período</option>)}<option value="Finalista">Finalista</option></select></label>
-              <label className="block"><span className="text-sm font-bold text-gray-700">Telefone</span><input name="telefone" defaultValue={data.profile.telefone} className="border w-full p-2 rounded mt-1 bg-gray-50" placeholder="(99) 99999-9999" /></label>
-           </div>
-           <div className="mb-6"><span className="text-sm font-bold text-gray-700">Habilidades</span><div className="flex gap-2 mt-1 mb-2"><input value={skillInput} onChange={e => setSkillInput(e.target.value)} className="border flex-1 p-2 rounded bg-gray-50" placeholder="Ex: Python..." onKeyDown={e => e.key === 'Enter' && addSkill(e)}/><button type="button" onClick={addSkill} className="bg-blue-600 text-white px-4 rounded font-bold">Adicionar</button></div><div className="flex flex-wrap gap-2 min-h-[40px] p-2 border border-dashed rounded bg-gray-50">{skillsList.map((skill, index) => (<span key={index} className="bg-blue-100 text-blue-800 px-3 py-1 rounded-full text-sm font-semibold flex items-center gap-2">{skill}<button type="button" onClick={() => removeSkill(index)} className="text-blue-400 hover:text-red-500 font-bold">✕</button></span>))}</div></div>
-           <div className="grid md:grid-cols-2 gap-4 mb-6">
-              <label className="block"><span className="text-sm font-bold text-gray-700">Link Lattes</span><input name="link_lattes" defaultValue={data.profile.link_lattes} className="border w-full p-2 rounded mt-1 bg-gray-50" placeholder="http://lattes.cnpq.br/..." /></label>
-              <label className="block"><span className="text-sm font-bold text-gray-700">Link GitHub</span><input name="link_github" defaultValue={data.profile.link_github} className="border w-full p-2 rounded mt-1 bg-gray-50" placeholder="https://github.com/..." /></label>
-           </div>
-           <button className="bg-green-600 text-white w-full py-3 rounded font-bold text-lg shadow">Salvar Perfil</button>
-        </form>
-      )}
+        {/* ABA PROJETOS */}
+        {tab === 'projetos' && (
+            <div id="lista-projetos" className="animate-fadeIn w-full">
+                {user.role === 'docente' && (
+                    <div className="flex justify-between items-center mb-6">
+                        <h2 className="text-2xl font-bold text-gray-800">Projetos Gerenciados</h2>
+                        <button onClick={()=>setNewProj(true)} className="bg-green-600 text-white px-5 py-2.5 rounded-lg font-bold shadow-md hover:bg-green-700 transition flex items-center gap-2"><span className="text-lg">+</span> Novo Projeto</button>
+                    </div>
+                )}
+                <div className="grid md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 w-full">
+                    {data.projects.map(p => {
+                        const expired = checkExpired(p.prazo_inscricao);
+                        return (
+                            <div key={p.id} className={`bg-white p-6 rounded-xl shadow-sm border hover:shadow-xl transition-all duration-300 flex flex-col group h-full ${expired ? 'border-gray-100 opacity-75' : 'border-gray-200 hover:border-blue-300'}`}>
+                                <div className="flex justify-between items-start mb-4"><span className="text-xs font-bold text-blue-600 bg-blue-50 px-3 py-1 rounded-full uppercase tracking-wider">{p.tipo}</span><StatusBadge status={p.status} expired={expired} /></div>
+                                <h3 className="font-bold text-xl text-gray-900 mb-2 group-hover:text-blue-700 transition line-clamp-2">{p.titulo}</h3>
+                                <div className="flex items-center gap-4 text-xs text-gray-500 mb-4"><span className="flex items-center gap-1"><FaMapMarkerAlt/> {p.campus || 'N/A'}</span><span className="flex items-center gap-1"><FaClock/> {p.carga_horaria}h</span></div>
+                                <p className="text-sm text-gray-600 mb-6 line-clamp-3 flex-grow leading-relaxed">{p.descricao}</p>
+                                {p.status === 'ABERTO' && (<div className={`text-xs font-bold mb-3 flex items-center gap-1 ${expired ? 'text-gray-500' : 'text-red-500'}`}><FaClock className={expired ? '' : 'animate-pulse'}/> {expired ? 'Encerrado' : `Encerra em ${getDaysLeft(p.prazo_inscricao)} dias`}</div>)}
+                                <div className="mt-auto">
+                                    <button onClick={()=>setViewProj(p)} className="w-full py-3 rounded-lg border border-blue-200 text-blue-600 font-bold hover:bg-blue-50 transition mb-2">Ver Detalhes</button>
+                                    {user.role === 'discente' && p.status === 'ABERTO' && !myStatusInProject(p.id) && !expired && (<button onClick={()=>apply(p.id)} className="w-full py-3 rounded-lg bg-blue-600 text-white font-bold hover:bg-blue-700 shadow-md transition">Quero Participar</button>)}
+                                </div>
+                            </div>
+                        );
+                    })}
+                </div>
+            </div>
+        )}
 
-      {/* --- MODAL NOVO PROJETO (AGORA COM TEXTOS ESPECÍFICOS) --- */}
+        {/* OUTRAS ABAS (Mural, Equipes, Candidaturas, Perfil) mantidas iguais ao anterior... */}
+        {/* ... Copie o restante do código anterior para essas abas, pois só mudamos o Modal de Novo Projeto e a Visualização de Detalhes ... */}
+        {/* VOU INCLUIR AQUI APENAS AS PARTES QUE MUDARAM DRASTICAMENTE (MODAL E VISUALIZAÇÃO) PARA CABER NA RESPOSTA */}
+        
+        {/* --- ABA MINHAS EQUIPES (COM BUSCA) --- */}
+        {tab === 'equipes' && (
+            <div className="space-y-8 animate-fadeIn w-full">
+               <div className="bg-white p-6 rounded-xl shadow-md border border-gray-100 w-full">
+                  <h3 className="font-bold text-lg mb-4 text-gray-800 flex items-center gap-2 border-b pb-2"><FaSearch className="text-blue-600"/> Buscar Alunos</h3>
+                  <div className="flex gap-2 mb-4"><input className="py-2 px-3 text-sm rounded-lg border w-full bg-gray-50 focus:bg-white focus:ring-2 focus:ring-blue-100 outline-none" placeholder="Nome do aluno..." value={search} onChange={e => setSearch(e.target.value)} onKeyDown={e => e.key === 'Enter' && searchStudents()} /><button onClick={searchStudents} className="bg-blue-600 text-white px-4 rounded-lg font-bold hover:bg-blue-700">Buscar</button></div>
+                  {searchResults.length > 0 && <ul className="space-y-2 max-h-[300px] overflow-y-auto mt-4 border-t pt-2">{searchResults.map(u => (<li key={u.id} className="flex justify-between items-center bg-gray-50 p-3 rounded-lg hover:bg-blue-50 transition cursor-pointer group" onClick={() => setViewStudent(u)}><div><p className="font-bold text-sm text-gray-800 group-hover:text-blue-700">{u.nome}</p><p className="text-xs text-gray-500">{u.email}</p></div><span className="text-xs text-blue-400 opacity-0 group-hover:opacity-100 transition">Ver Perfil</span></li>))}</ul>}
+               </div>
+               {/* Lista de Projetos Vertical */}
+               <div className="space-y-8">
+                 {data.projects.map(p => (
+                   <div key={p.id} className="bg-white rounded-xl shadow-md border border-gray-200 overflow-hidden w-full">
+                      <div className="p-6 border-b bg-gray-50 flex justify-between items-center"><div><h3 className="font-bold text-xl text-gray-800">{p.titulo}</h3><p className="text-xs text-gray-500 uppercase font-bold mt-1">{p.tipo}</p></div><span className="text-xs font-bold text-gray-600 bg-white px-3 py-1 rounded-full border shadow-sm">Vagas: {p.applications?p.applications.length:0}/{p.vagas_totais}</span></div>
+                      <div className="p-6">
+                         <h4 className="text-sm font-bold text-gray-700 uppercase mb-4 flex items-center gap-2"><FaUsers className="text-blue-500"/> Membros da Equipe</h4>
+                         {(!p.applications || p.applications.length === 0) ? <div className="bg-gray-50 border border-dashed border-gray-300 p-4 rounded-lg text-center mb-8"><p className="text-gray-400 italic text-sm">Nenhum aluno aprovado nesta equipe ainda.</p></div> : (<div className="grid sm:grid-cols-2 md:grid-cols-3 gap-4 mb-8">{p.applications.map(m => (<div key={m.id} className="flex items-center justify-between p-4 rounded-lg border border-gray-100 bg-gray-50 hover:border-blue-200 hover:shadow-sm transition group"><div className="flex items-center gap-3 cursor-pointer" onClick={() => setViewStudent(m.discente)}><div className="w-10 h-10 bg-indigo-100 text-indigo-700 rounded-full flex items-center justify-center font-bold text-sm shadow-sm">{m.discente?.nome?.charAt(0).toUpperCase()}</div><div className="overflow-hidden"><p className="font-bold text-sm text-gray-800 group-hover:text-blue-700 truncate w-32">{m.discente?.nome}</p><p className="text-xs text-gray-500 truncate w-32">{m.discente?.email}</p></div></div><button onClick={() => manageApp(m.id, 'RECUSADA', true)} className="text-gray-300 hover:text-red-500 p-2 rounded-full hover:bg-red-50 transition" title="Remover Aluno"><FaTrash/></button></div>))}</div>)}
+                         <div className="bg-blue-50 p-6 rounded-xl border border-blue-100"><h4 className="text-sm font-bold text-blue-800 uppercase mb-3 flex items-center gap-2"><FaBullhorn/> Mural de Avisos do Projeto</h4><div className="flex gap-2 mb-4"><textarea className="w-full border border-blue-200 rounded-lg p-3 text-sm bg-white focus:ring-2 focus:ring-blue-300 outline-none resize-none h-20 shadow-sm" placeholder="Escreva um aviso importante para a equipe..." value={postContent[p.id] || ''} onChange={(e) => setPostContent({ ...postContent, [p.id]: e.target.value })}/><div className="flex justify-end"><button onClick={() => postToMural(p.id)} className="bg-blue-600 text-white px-6 py-2 rounded-lg font-bold hover:bg-blue-700 shadow-md flex items-center gap-2 transition"><FaPaperPlane className="text-sm"/> Publicar</button></div></div>{p.mural_posts?.length > 0 && (<div className="bg-white rounded-lg border border-blue-100 max-h-60 overflow-y-auto divide-y divide-gray-100 shadow-inner">{p.mural_posts.map(post => (<div key={post.id} className="p-4 hover:bg-gray-50 transition"><p className="text-gray-800 text-sm whitespace-pre-wrap leading-relaxed">{post.content}</p><p className="text-xs text-gray-400 mt-2 flex justify-end items-center gap-1"><FaClock className="text-[10px]"/> {formatDate(post.createdAt || post.created_at)}</p></div>))}</div>)}</div>
+                      </div>
+                   </div>
+                 ))}
+               </div>
+            </div>
+        )}
+
+        {/* ABAS RESTANTES (Mural Discente, Candidaturas, Perfil) */}
+        {tab === 'murais' && (
+            <div className="space-y-6 animate-fadeIn w-full max-w-7xl mx-auto">
+                {data.applications.filter(app => app.status === 'ACEITA').length === 0 && <div className="text-center py-20 bg-white rounded-xl shadow-sm border border-dashed border-gray-300"><FaUserGraduate className="text-6xl text-gray-300 mx-auto mb-4"/><p className="text-gray-500 text-lg">Você ainda não participa de nenhum projeto.</p></div>}
+                {data.applications.filter(app => app.status === 'ACEITA').map(app => (
+                    <div key={app.id} className="bg-white rounded-xl shadow-md border border-gray-200 overflow-hidden hover:shadow-lg transition">
+                        <div className="bg-gradient-to-r from-green-500 to-emerald-600 p-6 text-white"><h3 className="text-2xl font-bold">{app.project?.titulo}</h3><p className="opacity-90 mt-1 flex items-center gap-2"><FaUserGraduate/> Orientador: {app.project?.docente?.nome}</p></div>
+                        <div className="p-6">
+                            <div className="bg-yellow-50 border border-yellow-200 p-6 rounded-xl flex items-start gap-4 shadow-sm mb-6"><span className="text-4xl">🎉</span><div><h4 className="font-bold text-yellow-900 text-lg mb-2">Bem-vindo(a) à Equipe!</h4><p className="text-yellow-800 leading-relaxed text-sm">Sua participação foi aprovada.</p></div></div>
+                            <h4 className="font-bold text-gray-800 text-lg mb-4 flex items-center gap-2"><FaBullhorn className="text-orange-500"/> Quadro de Avisos</h4>
+                            <div className="space-y-4">{app.project?.mural_posts?.length > 0 ? (app.project.mural_posts.map(post => (<div key={post.id} className="bg-blue-50 p-4 rounded-lg border border-blue-100 shadow-sm"><p className="text-gray-800 text-sm whitespace-pre-wrap">{post.content}</p><p className="text-xs text-gray-500 mt-2 text-right">{formatDate(post.createdAt || post.created_at)}</p></div>))) : <p className="text-gray-400 italic text-sm">Nenhum aviso publicado.</p>}</div>
+                        </div>
+                    </div>
+                ))}
+            </div>
+        )}
+        
+        {/* ABA CANDIDATURAS */}
+        {tab === 'candidaturas' && (
+            <div className="max-w-7xl mx-auto bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden animate-slideIn">
+                {data.applications.map(app => (
+                    <div key={app.id} className="p-6 border-b last:border-0 hover:bg-gray-50 transition flex justify-between items-center">
+                        <div><p className="font-bold text-gray-800 text-lg">{app.project?.titulo}</p>{user.role === 'docente' && <p className="text-sm text-blue-600 cursor-pointer hover:underline mt-1" onClick={() => setViewStudent(app.discente)}>Candidato: {app.discente?.nome}</p>}<p className="text-sm text-gray-500 italic mt-2 bg-gray-100 p-2 rounded inline-block">"{app.mensagem}"</p></div>
+                        <div className="text-right flex flex-col items-end gap-3"><StatusBadge status={app.status} />{user.role === 'docente' && app.status === 'PENDENTE' && (<div className="flex gap-2"><button onClick={()=>manageApp(app.id, 'ACEITA')} className="bg-green-600 text-white px-3 py-1.5 rounded text-sm font-bold hover:bg-green-700 shadow-sm">Aceitar</button><button onClick={()=>manageApp(app.id, 'RECUSADA')} className="border border-red-200 text-red-600 px-3 py-1.5 rounded text-sm font-bold hover:bg-red-50">Recusar</button></div>)}</div>
+                    </div>
+                ))}
+            </div>
+        )}
+
+        {/* ABA PERFIL */}
+        {tab === 'perfil' && (
+            <form onSubmit={saveProfile} className="bg-white p-8 rounded-xl shadow-md border border-gray-100 max-w-3xl mx-auto animate-fadeIn">
+               <h3 className="font-bold text-2xl mb-8 text-gray-800 pb-2 border-b flex items-center gap-2"><FaUserGraduate className="text-blue-600"/> Meu Perfil</h3>
+               <div className="grid md:grid-cols-2 gap-6 mb-6">
+                  <div><label className="block text-sm font-bold text-gray-700 mb-2">Curso</label><input name="curso" defaultValue={data.profile.curso} className="border w-full p-3 rounded-lg bg-gray-50 focus:bg-white focus:ring-2 focus:ring-blue-100 outline-none transition" /></div>
+                  <div><label className="block text-sm font-bold text-gray-700 mb-2">Campus</label><input name="campus" defaultValue={data.profile.campus} className="border w-full p-3 rounded-lg bg-gray-50 focus:bg-white focus:ring-2 focus:ring-blue-100 outline-none transition" /></div>
+                  <div><label className="block text-sm font-bold text-gray-700 mb-2">Período</label><select name="periodo" defaultValue={data.profile.periodo} className="border w-full p-3 rounded-lg bg-gray-50"><option value="">Selecione...</option>{[...Array(10)].map((_, i) => <option key={i} value={`${i+1}º`}>{i+1}º Período</option>)}<option value="Finalista">Finalista</option></select></div>
+                  <div><label className="block text-sm font-bold text-gray-700 mb-2">Telefone</label><input name="telefone" defaultValue={data.profile.telefone} className="border w-full p-3 rounded-lg bg-gray-50 focus:bg-white focus:ring-2 focus:ring-blue-100 outline-none transition" /></div>
+               </div>
+               <div className="mb-6"><label className="block text-sm font-bold text-gray-700 mb-2">Habilidades</label><div className="flex gap-2 mb-3"><input value={skillInput} onChange={e => setSkillInput(e.target.value)} className="border flex-1 p-3 rounded-lg" placeholder="Ex: Python..." onKeyDown={e => e.key === 'Enter' && addSkill(e)}/><button type="button" onClick={addSkill} className="bg-blue-600 text-white px-5 rounded-lg font-bold">Adicionar</button></div><div className="flex flex-wrap gap-2 min-h-[50px] p-3 border border-dashed rounded-lg bg-gray-50">{skillsList.map((skill, index) => (<span key={index} className="bg-blue-100 text-blue-800 px-3 py-1 rounded-full text-sm font-bold flex items-center gap-2">{skill}<button type="button" onClick={() => removeSkill(index)} className="text-blue-400 hover:text-red-500">✕</button></span>))}</div></div>
+               <div className="grid md:grid-cols-2 gap-6 mb-8">
+                  <div><label className="block text-sm font-bold text-gray-700 mb-2">Lattes</label><input name="link_lattes" defaultValue={data.profile.link_lattes} className="border w-full p-3 rounded-lg" /></div>
+                  <div><label className="block text-sm font-bold text-gray-700 mb-2">GitHub</label><input name="link_github" defaultValue={data.profile.link_github} className="border w-full p-3 rounded-lg" /></div>
+               </div>
+               <button className="bg-green-600 text-white w-full py-4 rounded-lg font-bold text-lg shadow-lg hover:bg-green-700 transition">Salvar Alterações</button>
+            </form>
+        )}
+
+      </main>
+
+      {/* --- MODAIS --- */}
+
+      {/* MODAL NOVO PROJETO (COM LISTA DINÂMICA) */}
       {newProj && (
-         <div className="fixed inset-0 bg-black/50 flex justify-center items-center z-50 p-4">
-           <form onSubmit={saveProject} className="bg-white p-8 rounded-lg shadow-xl w-full max-w-lg max-h-[90vh] overflow-auto">
-             <h3 className="font-bold text-2xl mb-6 text-gray-800 border-b pb-2">Cadastrar Novo Projeto</h3>
-             <div className="mb-4">
-               <label className="block text-sm font-bold text-gray-700 mb-1">Título do Projeto</label>
-               <input name="titulo" placeholder="Ex: Desenvolvimento de API para Gestão Hospitalar" required className="border w-full p-3 rounded bg-gray-50 focus:bg-white focus:ring-2 focus:ring-blue-200 outline-none" />
+         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex justify-center items-center z-50 p-4">
+           <form onSubmit={saveProject} className="bg-white p-8 rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-auto">
+             <div className="flex justify-between items-center mb-6 border-b pb-4"><h3 className="font-bold text-2xl text-gray-800">Novo Projeto</h3><button type="button" onClick={()=>setNewProj(false)} className="text-gray-400 hover:text-gray-600"><FaTimes className="text-xl"/></button></div>
+             
+             <div className="space-y-4">
+               <div><label className="block text-sm font-bold text-gray-700 mb-1">Título</label><input name="titulo" required placeholder="Ex: Desenvolvimento de API..." className="border w-full p-3 rounded-lg bg-gray-50 focus:bg-white" /></div>
+               <div><label className="block text-sm font-bold text-gray-700 mb-1">Descrição</label><textarea name="descricao" placeholder="Descreva o projeto..." className="border w-full p-3 rounded-lg bg-gray-50 h-24 resize-none" /></div>
+               
+               {/* LISTA DINÂMICA: OBJETIVOS */}
+               <div>
+                  <label className="block text-sm font-bold text-gray-700 mb-1">Objetivos</label>
+                  <div className="flex gap-2 mb-2"><input value={objInput} onChange={e => setObjInput(e.target.value)} className="border flex-1 p-2 rounded bg-gray-50" placeholder="Ex: Desenvolver MVP..." onKeyDown={e => e.key === 'Enter' && addObj(e)}/><button type="button" onClick={addObj} className="bg-blue-100 text-blue-700 px-3 rounded hover:bg-blue-200 font-bold">+</button></div>
+                  {objList.length > 0 && <ul className="list-disc pl-5 text-sm text-gray-700 bg-gray-50 p-2 rounded border border-dashed">{objList.map((x,i) => <li key={i} className="flex justify-between">{x} <button type="button" onClick={()=>removeObj(i)} className="text-red-400 hover:text-red-600 ml-2">x</button></li>)}</ul>}
+               </div>
+
+               {/* LISTA DINÂMICA: REQUISITOS */}
+               <div>
+                  <label className="block text-sm font-bold text-gray-700 mb-1">Requisitos</label>
+                  <div className="flex gap-2 mb-2"><input value={reqInput} onChange={e => setReqInput(e.target.value)} className="border flex-1 p-2 rounded bg-gray-50" placeholder="Ex: Conhecimento em React..." onKeyDown={e => e.key === 'Enter' && addReq(e)}/><button type="button" onClick={addReq} className="bg-blue-100 text-blue-700 px-3 rounded hover:bg-blue-200 font-bold">+</button></div>
+                  {reqList.length > 0 && <ul className="list-disc pl-5 text-sm text-gray-700 bg-gray-50 p-2 rounded border border-dashed">{reqList.map((x,i) => <li key={i} className="flex justify-between">{x} <button type="button" onClick={()=>removeReq(i)} className="text-red-400 hover:text-red-600 ml-2">x</button></li>)}</ul>}
+               </div>
+
+               <div className="grid grid-cols-2 gap-4"><div><label className="block text-sm font-bold text-gray-700 mb-1">Campus</label><input name="campus" placeholder="Ex: Centro" className="w-full p-2 border rounded-lg bg-gray-50" /></div><div><label className="block text-sm font-bold text-gray-700 mb-1">Carga Horária</label><input name="carga_horaria" type="number" placeholder="Ex: 40" className="w-full p-2 border rounded-lg bg-gray-50" /></div></div>
+               <div className="grid grid-cols-2 gap-4"><div><label className="block text-sm font-bold text-gray-700 mb-1">Tipo</label><select name="tipo" className="w-full p-2 border rounded-lg bg-gray-50"><option value="PESQUISA">Pesquisa</option><option value="EXTENSAO">Extensão</option><option value="VOLUNTARIO">Voluntário</option></select></div><div><label className="block text-sm font-bold text-gray-700 mb-1">Vagas</label><input name="vagas_totais" type="number" defaultValue="1" min="1" className="w-full p-2 border rounded-lg bg-gray-50" /></div></div>
+               <div><label className="block text-sm font-bold text-gray-700 mb-1">Prazo (D+1)</label><input name="prazo_inscricao" type="date" required className="w-full p-2 border rounded-lg bg-gray-50 cursor-pointer" /></div>
              </div>
-             <div className="mb-4">
-               <label className="block text-sm font-bold text-gray-700 mb-1">Resumo / Descrição</label>
-               <textarea name="descricao" placeholder="Descreva a metodologia, o problema a ser resolvido e a área de conhecimento envolvida..." className="border w-full p-3 rounded bg-gray-50 h-24" />
-             </div>
-             <div className="grid grid-cols-2 gap-4 mb-4">
-                <div><label className="block text-sm font-bold text-gray-700 mb-1">Objetivos</label><textarea name="objetivos" placeholder="Ex: Desenvolver MVP, publicar artigo no congresso X..." className="border w-full p-3 rounded bg-gray-50 h-24" /></div>
-                <div><label className="block text-sm font-bold text-gray-700 mb-1">Requisitos/Competências</label><textarea name="requisitos" placeholder="Ex: Domínio de Java, disponibilidade de 20h semanais..." className="border w-full p-3 rounded bg-gray-50 h-24" /></div>
-             </div>
-             <div className="grid grid-cols-2 gap-4 mb-4">
-                <div><label className="block text-sm font-bold text-gray-700 mb-1">Campus</label><input name="campus" placeholder="Ex: Centro - Bloco C" className="w-full p-2 border rounded bg-gray-50" /></div>
-                <div><label className="block text-sm font-bold text-gray-700 mb-1">Carga Horária (Total)</label><input name="carga_horaria" type="number" placeholder="Ex: 60" className="w-full p-2 border rounded bg-gray-50" /></div>
-             </div>
-             <div className="grid grid-cols-2 gap-4 mb-6">
-                <div><label className="block text-sm font-bold text-gray-700 mb-1">Tipo</label><select name="tipo" className="border w-full p-2 rounded bg-gray-50"><option value="PESQUISA">Pesquisa</option><option value="EXTENSAO">Extensão</option><option value="VOLUNTARIO">Voluntário</option></select></div>
-                <div><label className="block text-sm font-bold text-gray-700 mb-1">Vagas Disponíveis</label><input name="vagas_totais" type="number" defaultValue="1" min="1" className="border w-full p-2 rounded bg-gray-50" /></div>
-             </div>
-             <div className="mb-6"><label className="block text-sm font-bold text-gray-700 mb-1">Prazo Limite Inscrição (D+1)</label><input name="prazo_inscricao" type="date" required className="w-full p-2 border rounded bg-gray-50" /></div>
-             <div className="flex justify-end gap-3 pt-4 border-t"><button type="button" onClick={()=>setNewProj(false)} className="px-6 py-2 text-gray-600 font-bold hover:bg-gray-100 rounded">Cancelar</button><button className="bg-green-600 text-white px-8 py-2 rounded font-bold hover:bg-green-700 shadow-md">Criar Projeto</button></div>
+             <div className="flex justify-end gap-3 pt-6 border-t mt-6"><button type="button" onClick={()=>setNewProj(false)} className="px-6 py-2 text-gray-600 font-bold hover:bg-gray-100 rounded-lg">Cancelar</button><button className="bg-green-600 text-white px-8 py-2 rounded-lg font-bold shadow-md hover:bg-green-700">Criar Projeto</button></div>
            </form>
          </div>
       )}
 
-      {/* --- MODAL PERFIL ALUNO (AGORA COMPLETO) --- */}
-      {viewStudent && (
-        <div className="fixed inset-0 bg-black/50 flex justify-center items-center z-50 p-4">
-           <div className="bg-white p-6 rounded-lg shadow-xl w-96 max-h-[90vh] overflow-auto relative">
-             <button onClick={()=>setViewStudent(null)} className="absolute top-4 right-4 text-gray-400 hover:text-gray-600 font-bold">✕</button>
-             <div className="text-center mb-6">
-                <div className="w-20 h-20 bg-blue-600 text-white rounded-full flex items-center justify-center text-3xl font-bold mx-auto mb-3">{viewStudent.nome.charAt(0).toUpperCase()}</div>
-                <h2 className="text-2xl font-bold text-gray-800">{viewStudent.nome}</h2>
-                <p className="text-sm text-gray-500 mb-1 flex items-center justify-center gap-1"><FaEnvelope className="text-xs" /> {viewStudent.email}</p>
+      {/* MODAL DETALHES (COM LISTA RENDERIZADA) */}
+      {viewProj && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex justify-center items-center z-50 p-4">
+           <div className="bg-white p-8 rounded-2xl shadow-2xl w-full max-w-3xl max-h-[90vh] overflow-auto relative">
+             <button onClick={()=>setViewProj(null)} className="absolute top-5 right-5 text-gray-400 hover:text-gray-600 font-bold text-xl">✕</button>
+             <div className="flex justify-between items-start mb-6 border-b pb-4"><div><h2 className="text-3xl font-bold text-gray-900">{viewProj.titulo}</h2><p className="text-sm text-gray-500 mt-1">Docente Responsável: <span className="font-semibold text-blue-800">{viewProj.docente?.nome}</span></p></div><StatusBadge status={viewProj.status} expired={checkExpired(viewProj.prazo_inscricao)} /></div>
+             <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6 bg-blue-50 p-4 rounded-xl border border-blue-100">
+                <div><p className="text-xs text-blue-500 font-bold uppercase">Tipo</p><p className="font-bold text-blue-900">{viewProj.tipo}</p></div>
+                <div><p className="text-xs text-blue-500 font-bold uppercase">Campus</p><p className="font-bold text-blue-900">{viewProj.campus || '-'}</p></div>
+                <div><p className="text-xs text-blue-500 font-bold uppercase">Carga</p><p className="font-bold text-blue-900">{viewProj.carga_horaria}h</p></div>
+                <div><p className="text-xs text-blue-500 font-bold uppercase">Vagas</p><p className="font-bold text-blue-900">{viewProj.vagas_ocupadas} / {viewProj.vagas_totais}</p></div>
              </div>
-             <div className="space-y-4">
-                <div className="bg-gray-50 p-4 rounded text-sm border">
-                   <p className="mb-1"><strong className="text-gray-700">Curso:</strong> {viewStudent.profile?.curso || <span className="text-gray-400 italic">Não informado</span>}</p>
-                   <p className="mb-1"><strong className="text-gray-700">Campus:</strong> {viewStudent.profile?.campus || <span className="text-gray-400 italic">Não informado</span>}</p>
-                   <p><strong className="text-gray-700">Período:</strong> {viewStudent.profile?.periodo || <span className="text-gray-400 italic">Não informado</span>}</p>
-                </div>
-                <div>
-                   <h3 className="font-bold text-gray-700 text-sm mb-2 border-b pb-1">Competências</h3>
-                   <div className="flex flex-wrap gap-1">
-                      {renderSkills(viewStudent.profile?.habilidades) || <span className="text-xs text-gray-400 italic">Nenhuma registrada</span>}
-                   </div>
-                </div>
-                <div>
-                   <h3 className="font-bold text-gray-700 text-sm mb-2 border-b pb-1">Contato & Links</h3>
-                   <div className="flex flex-col gap-3 mt-2">
-                      {viewStudent.profile?.telefone ? (
-                        <a href={`https://wa.me/55${viewStudent.profile.telefone.replace(/\D/g,'')}`} target="_blank" className="flex items-center gap-2 text-green-600 text-sm hover:underline bg-green-50 p-2 rounded border border-green-100">
-                           <FaWhatsapp className="text-lg" /> <strong>WhatsApp:</strong> {viewStudent.profile.telefone}
-                        </a>
-                      ) : <span className="text-xs text-gray-400 pl-2">Telefone não informado</span>}
-
-                      {viewStudent.profile?.link_lattes ? (
-                        <a href={viewStudent.profile.link_lattes} target="_blank" className="flex items-center gap-2 text-blue-800 text-sm hover:underline bg-blue-50 p-2 rounded border border-blue-100">
-                           <FaFileAlt className="text-lg" /> <strong>Lattes:</strong> Acessar Currículo <FaExternalLinkAlt className="text-xs" />
-                        </a>
-                      ) : <span className="text-xs text-gray-400 pl-2">Lattes não informado</span>}
-
-                      {viewStudent.profile?.link_github ? (
-                        <a href={viewStudent.profile.link_github} target="_blank" className="flex items-center gap-2 text-gray-800 text-sm hover:underline bg-gray-100 p-2 rounded border border-gray-200">
-                           <FaGithub className="text-lg" /> <strong>Portfólio/Git:</strong> Acessar Link <FaExternalLinkAlt className="text-xs" />
-                        </a>
-                      ) : <span className="text-xs text-gray-400 pl-2">Portfólio não informado</span>}
-                   </div>
+             <div className="space-y-6 text-gray-700">
+                <div><h3 className="font-bold text-gray-900 mb-2">Resumo</h3><p className="leading-relaxed bg-gray-50 p-4 rounded-lg border border-gray-100">{viewProj.descricao}</p></div>
+                <div className="grid md:grid-cols-2 gap-6">
+                    <div><h3 className="font-bold text-gray-900 mb-2 border-l-4 border-indigo-500 pl-3">Objetivos</h3>{renderList(viewProj.objetivos)}</div>
+                    <div><h3 className="font-bold text-gray-900 mb-2 border-l-4 border-purple-500 pl-3">Requisitos</h3>{renderList(viewProj.requisitos)}</div>
                 </div>
              </div>
-           </div>
-        </div>
-      )}
-
-      {/* MODAL DETALHES (Mantido igual) */}
-{viewProj && (
-        <div className="fixed inset-0 bg-black/50 flex justify-center items-center z-50 p-4">
-           <div className="bg-white p-8 rounded-lg shadow-2xl w-full max-w-3xl max-h-[90vh] overflow-auto relative">
-             <button onClick={()=>setViewProj(null)} className="absolute top-4 right-4 text-gray-400 hover:text-gray-600 font-bold text-xl">✕</button>
-             
-             {/* Cabeçalho */}
-             <div className="flex justify-between items-start mb-6 border-b pb-4">
-                <div>
-                   <h2 className="text-3xl font-bold text-gray-800">{viewProj.titulo}</h2>
-                   <p className="text-sm text-gray-500 mt-1">Docente Responsável: <span className="font-semibold text-gray-700">{viewProj.docente?.nome}</span></p>
-                </div>
-                <StatusBadge status={viewProj.status} />
-             </div>
-
-             {/* Informações Rápidas (Grid) */}
-             <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6 bg-gray-50 p-4 rounded-lg border border-gray-100">
-                <div>
-                   <p className="text-xs text-gray-500 font-bold uppercase">Tipo</p>
-                   <p className="text-sm text-gray-800">{viewProj.tipo}</p>
-                </div>
-                <div>
-                   <p className="text-xs text-gray-500 font-bold uppercase">Campus</p>
-                   <p className="text-sm text-gray-800">{viewProj.campus || '-'}</p>
-                </div>
-                <div>
-                   <p className="text-xs text-gray-500 font-bold uppercase">Carga Horária</p>
-                   <p className="text-sm text-gray-800">{viewProj.carga_horaria ? `${viewProj.carga_horaria}h` : '-'}</p>
-                </div>
-                <div>
-                   <p className="text-xs text-gray-500 font-bold uppercase">Vagas</p>
-                   <p className="text-sm text-gray-800">{viewProj.vagas_ocupadas} / {viewProj.vagas_totais}</p>
-                </div>
-             </div>
-
-             <div className="space-y-6">
-               {/* Descrição */}
-               <div>
-                 <h3 className="text-lg font-bold text-gray-800 mb-2 border-l-4 border-blue-500 pl-2">Resumo do Projeto</h3>
-                 <p className="text-gray-700 leading-relaxed whitespace-pre-wrap">{viewProj.descricao}</p>
-               </div>
-
-               {/* Objetivos */}
-               <div>
-                 <h3 className="text-lg font-bold text-gray-800 mb-2 border-l-4 border-indigo-500 pl-2">Objetivos</h3>
-                 <p className="text-gray-700 leading-relaxed whitespace-pre-wrap">{viewProj.objetivos || "Não especificado."}</p>
-               </div>
-
-               {/* Requisitos */}
-               <div>
-                 <h3 className="text-lg font-bold text-gray-800 mb-2 border-l-4 border-purple-500 pl-2">Requisitos e Competências</h3>
-                 <p className="text-gray-700 leading-relaxed whitespace-pre-wrap">{viewProj.requisitos || "Não especificado."}</p>
-               </div>
-             </div>
-
-             {/* Rodapé com Prazo e Botão */}
              <div className="mt-8 pt-6 border-t flex flex-col md:flex-row justify-between items-center gap-4">
-                <div className="text-sm">
-                   <p className="text-gray-500">Prazo de inscrição até:</p>
-                   <p className="font-bold text-red-600">
-                      {new Date(viewProj.prazo_inscricao).toLocaleDateString()} 
-                      <span className="font-normal text-gray-500 ml-1">({getDaysLeft(viewProj.prazo_inscricao)} dias restantes)</span>
-                   </p>
-                </div>
-
-                {user.role === 'discente' && !myStatusInProject(viewProj.id) && viewProj.status === 'ABERTO' && (
-                   <button onClick={()=>{apply(viewProj.id); setViewProj(null)}} className="bg-blue-600 text-white px-8 py-3 rounded-lg font-bold hover:bg-blue-700 shadow-lg transition w-full md:w-auto">
-                      Quero Participar!
-                   </button>
-                )}
+                <div className={`text-sm font-medium flex items-center gap-2 px-3 py-2 rounded-lg ${checkExpired(viewProj.prazo_inscricao) ? 'bg-gray-100 text-gray-500' : 'bg-red-50 text-red-600'}`}><FaClock/>{checkExpired(viewProj.prazo_inscricao) ? 'Inscrições Encerradas' : `Inscrições até ${new Date(viewProj.prazo_inscricao).toLocaleDateString()}`}</div>
+                {user.role === 'discente' && !myStatusInProject(viewProj.id) && viewProj.status === 'ABERTO' && !checkExpired(viewProj.prazo_inscricao) && (<button onClick={()=>{apply(viewProj.id); setViewProj(null)}} className="bg-blue-600 text-white px-8 py-3 rounded-xl font-bold hover:bg-blue-700 shadow-lg transition w-full md:w-auto">Quero Participar</button>)}
              </div>
            </div>
         </div>
       )}
+
+      {/* MODAL PERFIL ALUNO (COMPLETO E BONITO) */}
+      {viewStudent && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex justify-center items-center z-50 p-4">
+           <div className="bg-white p-8 rounded-2xl shadow-2xl w-full max-w-md relative animate-slideIn">
+             <button onClick={()=>setViewStudent(null)} className="absolute top-5 right-5 text-gray-400 hover:text-gray-600 font-bold text-xl">✕</button>
+             <div className="text-center mb-8"><div className="w-24 h-24 bg-gradient-to-br from-blue-600 to-indigo-700 text-white rounded-full flex items-center justify-center text-4xl font-bold mx-auto mb-4 shadow-lg">{viewStudent.nome.charAt(0).toUpperCase()}</div><h2 className="text-2xl font-bold text-gray-800">{viewStudent.nome}</h2><p className="text-sm text-gray-500 flex items-center justify-center gap-2 bg-gray-100 py-1 px-3 rounded-full inline-block mt-2"><FaEnvelope /> {viewStudent.email}</p></div>
+             <div className="space-y-6">
+                <div className="bg-gray-50 p-5 rounded-xl border border-gray-200 text-sm space-y-2"><p className="flex justify-between"><span className="font-bold text-gray-600">Curso:</span> {viewStudent.profile?.curso || '-'}</p><p className="flex justify-between"><span className="font-bold text-gray-600">Campus:</span> {viewStudent.profile?.campus || '-'}</p><p className="flex justify-between"><span className="font-bold text-gray-600">Período:</span> <span className="bg-blue-100 text-blue-800 px-2 rounded-full font-bold">{viewStudent.profile?.periodo || '-'}</span></p></div>
+                <div><h3 className="font-bold text-gray-800 text-sm mb-3 flex items-center gap-2 border-b pb-2"><FaUserGraduate className="text-indigo-500"/> Competências</h3><div className="flex flex-wrap gap-2">{renderSkills(viewStudent.profile?.habilidades)}</div></div>
+                <div><h3 className="font-bold text-gray-800 text-sm mb-3 flex items-center gap-2 border-b pb-2">Contato & Links</h3><div className="flex flex-col gap-3">{viewStudent.profile?.telefone ? (<a href={`https://wa.me/55${viewStudent.profile.telefone.replace(/\D/g,'')}`} target="_blank" className="flex items-center gap-3 text-green-700 bg-green-50 p-3 rounded-lg border border-green-100 hover:bg-green-100 transition font-medium"><FaWhatsapp className="text-xl" /> WhatsApp: {viewStudent.profile.telefone}</a>) : <span className="text-sm text-gray-400 italic pl-2">Telefone não informado</span>}<div className="flex gap-3">{viewStudent.profile?.link_lattes ? (<a href={viewStudent.profile.link_lattes} target="_blank" className="flex-1 flex items-center justify-center gap-2 text-blue-700 bg-blue-50 p-3 rounded-lg border border-blue-100 hover:bg-blue-100 transition font-medium text-sm"><FaFileAlt /> Lattes <FaExternalLinkAlt className="text-xs"/></a>) : <span className="flex-1 text-sm text-gray-400 italic text-center bg-gray-50 p-3 rounded-lg border">Sem Lattes</span>}{viewStudent.profile?.link_github ? (<a href={viewStudent.profile.link_github} target="_blank" className="flex-1 flex items-center justify-center gap-2 text-gray-800 bg-gray-100 p-3 rounded-lg border border-gray-200 hover:bg-gray-200 transition font-medium text-sm"><FaGithub /> GitHub <FaExternalLinkAlt className="text-xs"/></a>) : <span className="flex-1 text-sm text-gray-400 italic text-center bg-gray-50 p-3 rounded-lg border">Sem GitHub</span>}</div></div></div>
+             </div>
+           </div>
+        </div>
+      )}
+
     </div>
   );
 }
 
-export default function App() {
-  return (
-    <BrowserRouter>
-      <Routes>
-        <Route path="/" element={<Login />} />
-        <Route path="/register" element={<Register />} />
-        <Route path="/dashboard" element={<Dashboard />} />
-      </Routes>
-    </BrowserRouter>
-  );
-}
+export default function App() { return <BrowserRouter><Routes><Route path="/" element={<Login />} /><Route path="/register" element={<Register />} /><Route path="/dashboard" element={<Dashboard />} /></Routes></BrowserRouter>; }

@@ -1,7 +1,8 @@
+DROP DATABASE IF EXISTS conecta_pesquisa_db;
 CREATE DATABASE conecta_pesquisa_db;
 USE conecta_pesquisa_db;
 
--- 1. Tabela de Usuários (Com deleted_at para Soft Delete)
+-- 1. Tabela de Usuários
 CREATE TABLE users (
     id INT AUTO_INCREMENT PRIMARY KEY,
     nome VARCHAR(255) NOT NULL,
@@ -13,7 +14,7 @@ CREATE TABLE users (
     deleted_at TIMESTAMP NULL
 );
 
--- 2. Tabela de Perfis (Com telefone, links separados e deleted_at)
+-- 2. Tabela de Perfis
 CREATE TABLE profiles (
     id INT AUTO_INCREMENT PRIMARY KEY,
     user_id INT NOT NULL,
@@ -30,7 +31,7 @@ CREATE TABLE profiles (
     FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
 );
 
--- 3. Tabela de Projetos (Com deleted_at)
+-- 3. Tabela de Projetos
 CREATE TABLE projects (
     id INT AUTO_INCREMENT PRIMARY KEY,
     docente_id INT NOT NULL,
@@ -51,7 +52,7 @@ CREATE TABLE projects (
     FOREIGN KEY (docente_id) REFERENCES users(id)
 );
 
--- 4. Tabela de Candidaturas (Com motivo de remoção e deleted_at)
+-- 4. Tabela de Candidaturas
 CREATE TABLE applications (
     id INT AUTO_INCREMENT PRIMARY KEY,
     project_id INT NOT NULL,
@@ -64,4 +65,25 @@ CREATE TABLE applications (
     deleted_at TIMESTAMP NULL,
     FOREIGN KEY (project_id) REFERENCES projects(id),
     FOREIGN KEY (discente_id) REFERENCES users(id)
+);
+
+-- 5. Tabela do Mural (NOVA - Para posts do professor)
+CREATE TABLE mural_posts (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    project_id INT NOT NULL,
+    user_id INT NOT NULL, -- Professor que postou
+    content TEXT NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    FOREIGN KEY (project_id) REFERENCES projects(id) ON DELETE CASCADE,
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+);
+
+-- 6. Tabela de Auditoria (Logs do Sistema)
+CREATE TABLE audit_logs (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    user_id INT,
+    action VARCHAR(50),
+    details TEXT,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
