@@ -1,12 +1,7 @@
 import { DataTypes } from 'sequelize';
 import { sequelize } from './database.js';
 
-// Configuração padrão para todas as tabelas
-const defaultOptions = {
-  underscored: true, // Força snake_case (created_at)
-  paranoid: true,    // Habilita deleted_at (Soft Delete)
-  timestamps: true   // Habilita created_at e updated_at
-};
+const defaultOptions = { underscored: true, paranoid: true, timestamps: true };
 
 export const User = sequelize.define('user', {
   nome: { type: DataTypes.STRING, allowNull: false },
@@ -46,20 +41,20 @@ export const Application = sequelize.define('application', {
   removal_reason: { type: DataTypes.TEXT },
   project_id: { type: DataTypes.INTEGER },
   discente_id: { type: DataTypes.INTEGER }
-}, { ...defaultOptions, tableName: 'applications', updatedAt: false }); 
+}, { ...defaultOptions, tableName: 'applications', updatedAt: false });
 
-// --- CORREÇÃO AQUI (AuditLog) ---
+// --- NOVO MODELO: MURAL POST ---
+export const MuralPost = sequelize.define('mural_post', {
+  content: { type: DataTypes.TEXT, allowNull: false },
+  user_id: { type: DataTypes.INTEGER },
+  project_id: { type: DataTypes.INTEGER }
+}, { ...defaultOptions, tableName: 'mural_posts', paranoid: false }); // Mural não precisa de soft delete por enquanto
+
 export const AuditLog = sequelize.define('audit_log', {
   user_id: { type: DataTypes.INTEGER },
   action: { type: DataTypes.STRING },
   details: { type: DataTypes.TEXT }
-}, { 
-  underscored: true, 
-  tableName: 'audit_logs', 
-  updatedAt: false, 
-  paranoid: false,
-  createdAt: 'created_at' // Força o nome correto da coluna
-});
+}, { underscored: true, tableName: 'audit_logs', updatedAt: false, paranoid: false, createdAt: 'created_at' });
 
 // Associações
 User.hasOne(Profile, { foreignKey: 'user_id' });
@@ -70,3 +65,9 @@ Project.hasMany(Application, { foreignKey: 'project_id' });
 Application.belongsTo(Project, { foreignKey: 'project_id' });
 User.hasMany(Application, { foreignKey: 'discente_id' });
 Application.belongsTo(User, { as: 'discente', foreignKey: 'discente_id' });
+
+// Associações do Mural
+Project.hasMany(MuralPost, { foreignKey: 'project_id' });
+MuralPost.belongsTo(Project, { foreignKey: 'project_id' });
+User.hasMany(MuralPost, { foreignKey: 'user_id' });
+MuralPost.belongsTo(User, { foreignKey: 'user_id' });

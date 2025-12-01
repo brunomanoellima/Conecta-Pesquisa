@@ -5,20 +5,18 @@ import jwt from 'jsonwebtoken';
 import bcrypt from 'bcryptjs';
 import { Op } from 'sequelize';
 import { sequelize } from './database.js';
-import { User, Project, Application, Profile, AuditLog } from './models.js';
+import { User, Project, Application, Profile, AuditLog, MuralPost } from './models.js';
 
 dotenv.config();
 const app = express();
 app.use(cors());
 app.use(express.json());
 
-// --- Helper Auditoria ---
 const logAction = async (userId, action, details) => {
   try { await AuditLog.create({ user_id: userId, action, details: JSON.stringify(details) }); } 
   catch (e) { console.error("Erro auditoria:", e); }
 };
 
-// --- Middleware Auth ---
 const auth = (roles = []) => (req, res, next) => {
   const token = req.headers['authorization']?.split(' ')[1];
   if (!token) return res.status(401).json({ error: 'Token necessário' });
@@ -29,7 +27,7 @@ const auth = (roles = []) => (req, res, next) => {
   });
 };
 
-// --- Auth ---
+// Auth
 app.post('/api/auth/login', async (req, res) => {
   const { email, password } = req.body;
   const user = await User.findOne({ where: { email } });
@@ -51,7 +49,7 @@ app.post('/api/auth/register', async (req, res) => {
   } catch (e) { res.status(400).json({ error: 'Erro registro' }); }
 });
 
-// --- Perfil ---
+// Perfil
 app.get('/api/profile', auth(), async (req, res) => {
   const p = await Profile.findOne({ where: { user_id: req.userId } });
   res.json(p || {});
@@ -64,11 +62,9 @@ app.put('/api/profile', auth(['discente']), async (req, res) => {
   res.json(p);
 });
 
-// --- Projetos ---
+// Projetos
 app.get('/api/projects', auth(), async (req, res) => {
   const where = req.userRole === 'docente' ? { docente_id: req.userId } : { status: 'ABERTO' };
-  
-  // AQUI ESTAVA O PROBLEMA: Faltava incluir o Profile dentro do discente
   const projects = await Project.findAll({ 
     where, 
     include: [
@@ -77,13 +73,10 @@ app.get('/api/projects', auth(), async (req, res) => {
         model: Application, 
         where: { status: 'ACEITA' }, 
         required: false, 
-        include: [{ 
-            model: User, 
-            as: 'discente', 
-            attributes: ['id', 'nome', 'email'], 
-            include: [Profile] // <--- CORREÇÃO: Traz os dados do perfil (telefone, links, etc)
-        }] 
-      }
+        include: [{ model: User, as: 'discente', attributes: ['id', 'nome', 'email'], include: [Profile] }] 
+      },
+      // INCLUIR POSTS DO MURAL (Ordenados do mais recente)
+      { model: MuralPost, separate: true, order: [['created_at', 'DESC']] }
     ] 
   });
   res.json(projects);
@@ -92,11 +85,6 @@ app.get('/api/projects', auth(), async (req, res) => {
 app.post('/api/projects', auth(['docente']), async (req, res) => {
   const { titulo, tipo, prazo_inscricao } = req.body;
   if (!titulo || !tipo || !prazo_inscricao) return res.status(400).json({ error: 'Campos obrigatórios' });
-  
-  const hoje = new Date(); hoje.setHours(0,0,0,0);
-  const prazo = new Date(prazo_inscricao);
-  if (prazo <= hoje) return res.status(400).json({ error: 'Prazo deve ser futuro' });
-
   try {
     const p = await Project.create({ ...req.body, docente_id: req.userId, status: 'ABERTO' });
     await logAction(req.userId, 'CREATE_PROJECT', { projectId: p.id });
@@ -104,49 +92,56 @@ app.post('/api/projects', auth(['docente']), async (req, res) => {
   } catch (e) { res.status(400).json({ error: 'Erro criar' }); }
 });
 
-app.post('/api/projects/:id/close', auth(['docente']), async (req, res) => {
-  const p = await Project.findByPk(req.params.id);
-  await p.update({ status: 'CONCLUIDO' });
-  await Application.update({ status: 'NAO_AVALIADA_ENCERRADA' }, { where: { project_id: p.id, status: 'PENDENTE' } });
-  res.json({ msg: 'Fechado' });
+// --- ROTA NOVA: POSTAR NO MURAL ---
+app.post('/api/projects/:id/mural', auth(['docente']), async (req, res) => {
+  try {
+    const { content } = req.body;
+    if(!content) return res.status(400).json({error: "Mensagem vazia"});
+    
+    // Verifica se o projeto é do docente
+    const project = await Project.findOne({ where: { id: req.params.id, docente_id: req.userId } });
+    if(!project) return res.status(403).json({error: "Acesso negado ao projeto"});
+
+    const post = await MuralPost.create({
+      project_id: project.id,
+      user_id: req.userId,
+      content: content
+    });
+    
+    res.json(post);
+  } catch (e) { res.status(500).json({ error: "Erro ao postar" }); }
 });
 
-// --- Candidaturas ---
+// Candidaturas
 app.post('/api/projects/:id/apply', auth(['discente']), async (req, res) => {
   const project = await Project.findByPk(req.params.id);
   if (project.status !== 'ABERTO') return res.status(400).json({ error: 'Fechado' });
-  if (new Date() > new Date(project.prazo_inscricao)) return res.status(400).json({ error: 'Prazo encerrado' });
-
-  const profile = await Profile.findOne({ where: { user_id: req.userId } });
-  // Validação simples de perfil
-  if (!profile || !profile.curso || !profile.periodo) return res.status(400).json({ error: 'Complete seu perfil (Curso/Período)' });
-
   const exists = await Application.findOne({ where: { project_id: req.params.id, discente_id: req.userId }});
   if(exists) return res.status(400).json({ error: 'Já candidatou' });
-
   const app = await Application.create({ project_id: req.params.id, discente_id: req.userId, mensagem: req.body.mensagem });
   res.json(app);
 });
 
 app.get('/api/applications', auth(), async (req, res) => {
   if (req.userRole === 'discente') {
-    const apps = await Application.findAll({ where: { discente_id: req.userId }, include: [Project] });
+    const apps = await Application.findAll({ 
+      where: { discente_id: req.userId }, 
+      include: [{ 
+        model: Project, 
+        include: [
+          { model: User, as: 'docente', attributes: ['nome', 'email'] },
+          // ALUNO VÊ O MURAL DO PROJETO AQUI
+          { model: MuralPost, separate: true, order: [['created_at', 'DESC']] }
+        ] 
+      }] 
+    });
     res.json(apps);
   } else {
+    // Código antigo para Docente (já coberto pelo get projects)
     const projects = await Project.findAll({ where: { docente_id: req.userId }, attributes: ['id'] });
     const apps = await Application.findAll({
       where: { project_id: projects.map(p=>p.id) },
-      // CORREÇÃO TAMBÉM NA ABA CANDIDATURAS:
-      include: [
-          { 
-            model: User, 
-            as: 'discente', 
-            include: [Profile] // Traz o perfil para o docente ver antes de aceitar
-          }, 
-          { 
-            model: Project, attributes: ['titulo', 'vagas_totais', 'vagas_ocupadas'] 
-          }
-      ]
+      include: [{ model: User, as: 'discente', include: [Profile] }, { model: Project, attributes: ['titulo', 'vagas_totais', 'vagas_ocupadas'] }]
     });
     res.json(apps);
   }
@@ -170,11 +165,9 @@ app.put('/api/applications/:id', auth(['docente']), async (req, res) => {
   
   app.status = status;
   await app.save();
-  await logAction(req.userId, 'DECISION', { applicationId: app.id, status });
   res.json(app);
 });
 
-// Pesquisa
 app.get('/api/users/search', auth(['docente']), async (req, res) => {
   const { nome } = req.query;
   if (!nome) return res.json([]);
