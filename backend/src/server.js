@@ -12,11 +12,13 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
+// --- LOGS ---
 const logAction = async (userId, action, details) => {
   try { await AuditLog.create({ user_id: userId, action, details: JSON.stringify(details) }); } 
   catch (e) { console.error("Erro auditoria:", e); }
 };
 
+// --- AUTH ---
 const auth = (roles = []) => (req, res, next) => {
   const token = req.headers['authorization']?.split(' ')[1];
   if (!token) return res.status(401).json({ error: 'Token necessário' });
@@ -27,7 +29,7 @@ const auth = (roles = []) => (req, res, next) => {
   });
 };
 
-// Auth
+// --- ROTAS DE AUTENTICAÇÃO ---
 app.post('/api/auth/login', async (req, res) => {
   const { email, password } = req.body;
   const user = await User.findOne({ where: { email } });
@@ -49,7 +51,7 @@ app.post('/api/auth/register', async (req, res) => {
   } catch (e) { res.status(400).json({ error: 'Erro registro' }); }
 });
 
-// Perfil
+// --- PERFIL ---
 app.get('/api/profile', auth(), async (req, res) => {
   const p = await Profile.findOne({ where: { user_id: req.userId } });
   res.json(p || {});
@@ -62,7 +64,7 @@ app.put('/api/profile', auth(['discente']), async (req, res) => {
   res.json(p);
 });
 
-// Projetos
+// --- PROJETOS ---
 app.get('/api/projects', auth(), async (req, res) => {
   const where = req.userRole === 'docente' ? { docente_id: req.userId } : { status: 'ABERTO' };
   const projects = await Project.findAll({ 
@@ -75,7 +77,6 @@ app.get('/api/projects', auth(), async (req, res) => {
         required: false, 
         include: [{ model: User, as: 'discente', attributes: ['id', 'nome', 'email'], include: [Profile] }] 
       },
-      // INCLUIR POSTS DO MURAL (Ordenados do mais recente)
       { model: MuralPost, separate: true, order: [['created_at', 'DESC']] }
     ] 
   });
@@ -92,27 +93,59 @@ app.post('/api/projects', auth(['docente']), async (req, res) => {
   } catch (e) { res.status(400).json({ error: 'Erro criar' }); }
 });
 
-// --- ROTA NOVA: POSTAR NO MURAL ---
+// --- ROTA DE EDIÇÃO (PUT) - AQUI ESTAVA O ERRO ---
+app.put('/api/projects/:id', auth(['docente']), async (req, res) => {
+    try {
+      const p = await Project.findByPk(req.params.id);
+      if (!p) return res.status(404).json({error: 'Projeto não encontrado'});
+      
+      // Verifica se o projeto pertence ao professor logado
+      if (p.docente_id !== req.userId) return res.status(403).json({error: 'Sem permissão'});
+
+      await p.update(req.body);
+      await logAction(req.userId, 'EDIT_PROJECT', { projectId: p.id });
+      res.json(p);
+    } catch(e) {
+      console.error(e);
+      res.status(500).json({error: 'Erro ao editar'});
+    }
+});
+
+// --- ROTA DE EXCLUSÃO (DELETE) ---
+app.delete('/api/projects/:id', auth(['docente']), async (req, res) => {
+    try {
+      const p = await Project.findByPk(req.params.id);
+      if (!p) return res.status(404).json({error: 'Projeto não encontrado'});
+      
+      if (p.docente_id !== req.userId) return res.status(403).json({error: 'Sem permissão'});
+
+      await p.destroy(); // Soft delete
+      await logAction(req.userId, 'DELETE_PROJECT', { projectId: p.id });
+      res.json({ message: 'Projeto excluído' });
+    } catch(e) {
+      res.status(500).json({error: 'Erro ao excluir'});
+    }
+});
+
+app.post('/api/projects/:id/close', auth(['docente']), async (req, res) => {
+    const p = await Project.findByPk(req.params.id);
+    if (!p) return res.status(404).json({error: 'Não encontrado'});
+    await p.update({ status: 'CONCLUIDO' });
+    await Application.update({ status: 'NAO_AVALIADA_ENCERRADA' }, { where: { project_id: p.id, status: 'PENDENTE' } });
+    res.json({ msg: 'Fechado' });
+});
+
+// --- MURAL ---
 app.post('/api/projects/:id/mural', auth(['docente']), async (req, res) => {
   try {
     const { content } = req.body;
-    if(!content) return res.status(400).json({error: "Mensagem vazia"});
-    
-    // Verifica se o projeto é do docente
-    const project = await Project.findOne({ where: { id: req.params.id, docente_id: req.userId } });
-    if(!project) return res.status(403).json({error: "Acesso negado ao projeto"});
-
-    const post = await MuralPost.create({
-      project_id: project.id,
-      user_id: req.userId,
-      content: content
-    });
-    
+    if(!content) return res.status(400).json({error: "Vazio"});
+    const post = await MuralPost.create({ project_id: req.params.id, user_id: req.userId, content });
     res.json(post);
-  } catch (e) { res.status(500).json({ error: "Erro ao postar" }); }
+  } catch (e) { res.status(500).json({ error: "Erro" }); }
 });
 
-// Candidaturas
+// --- CANDIDATURAS ---
 app.post('/api/projects/:id/apply', auth(['discente']), async (req, res) => {
   const project = await Project.findByPk(req.params.id);
   if (project.status !== 'ABERTO') return res.status(400).json({ error: 'Fechado' });
@@ -128,20 +161,15 @@ app.get('/api/applications', auth(), async (req, res) => {
       where: { discente_id: req.userId }, 
       include: [{ 
         model: Project, 
-        include: [
-          { model: User, as: 'docente', attributes: ['nome', 'email'] },
-          // ALUNO VÊ O MURAL DO PROJETO AQUI
-          { model: MuralPost, separate: true, order: [['created_at', 'DESC']] }
-        ] 
+        include: [{ model: User, as: 'docente' }, { model: MuralPost, separate: true, order: [['created_at', 'DESC']] }] 
       }] 
     });
     res.json(apps);
   } else {
-    // Código antigo para Docente (já coberto pelo get projects)
     const projects = await Project.findAll({ where: { docente_id: req.userId }, attributes: ['id'] });
     const apps = await Application.findAll({
       where: { project_id: projects.map(p=>p.id) },
-      include: [{ model: User, as: 'discente', include: [Profile] }, { model: Project, attributes: ['titulo', 'vagas_totais', 'vagas_ocupadas'] }]
+      include: [{ model: User, as: 'discente', include: [Profile] }, { model: Project }]
     });
     res.json(apps);
   }
@@ -151,7 +179,6 @@ app.put('/api/applications/:id', auth(['docente']), async (req, res) => {
   const { status, reason } = req.body; 
   const app = await Application.findByPk(req.params.id);
   const project = await Project.findByPk(app.project_id);
-
   if (status === 'ACEITA') {
     if (project.vagas_ocupadas >= project.vagas_totais) return res.status(400).json({ error: 'Lotado' });
     project.vagas_ocupadas++;
@@ -162,7 +189,6 @@ app.put('/api/applications/:id', auth(['docente']), async (req, res) => {
     await project.save();
   }
   if(reason) app.removal_reason = reason;
-  
   app.status = status;
   await app.save();
   res.json(app);
@@ -171,10 +197,7 @@ app.put('/api/applications/:id', auth(['docente']), async (req, res) => {
 app.get('/api/users/search', auth(['docente']), async (req, res) => {
   const { nome } = req.query;
   if (!nome) return res.json([]);
-  const users = await User.findAll({
-    where: { role: 'discente', nome: { [Op.like]: `%${nome}%` } },
-    include: [{ model: Profile }]
-  });
+  const users = await User.findAll({ where: { role: 'discente', nome: { [Op.like]: `%${nome}%` } }, include: [{ model: Profile }] });
   res.json(users);
 });
 
