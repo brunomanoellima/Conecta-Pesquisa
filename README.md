@@ -1,122 +1,163 @@
-# 📚 Conecta Pesquisa — Plataforma de Integração Acadêmica
+# 🔗 Conecta Pesquisa
 
-A Conecta Pesquisa é uma plataforma web projetada para aproximar discentes e docentes da UFAM, facilitando a criação de conexões acadêmicas para pesquisa, extensão e inovação.  
-O objetivo é romper a barreira informacional que impede alunos de encontrar oportunidades e professores de encontrar talentos, formando equipes interdisciplinares com base em interesses, habilidades e objetivos reais.
+Plataforma web para conectar estudantes e docentes de diferentes cursos em projetos de pesquisa, extensão e inovação, formando equipes interdisciplinares com base em interesses e objetivos comuns.
+
+---
+# 🐱‍💻 Equipe
+**Bruno - Nelio**
+# 📌 1) Contexto
+
+A Conecta Pesquisa facilita o encontro entre alunos interessados e professores com projetos ativos, permitindo que iniciativas científicas, tecnológicas e sociais avancem por meio da colaboração organizada e transparente.
 
 ---
 
-## 🎯 Propósito
+# 🎯 2) Problema e Público-Alvo
 
-Hoje, muitos estudantes desejam participar de projetos científicos, mas não sabem por onde começar. Por outro lado, docentes possuem ideias, linhas de pesquisa e demandas, mas encontram dificuldade em atrair perfis adequados.  
-O resultado é um ambiente onde:
+## 💡 O Problema
 
-- A pesquisa permanece concentrada em pequenos grupos.
-- Alunos iniciantes sentem-se desmotivados ou "excluídos".
-- A inovação se torna fragmentada e pouco interdisciplinar.
+Na UFAM, muitos alunos desejam participar de pesquisas, mas não sabem por onde começar. Ao mesmo tempo, docentes têm dificuldade para encontrar alunos com o perfil adequado.
 
-A Conecta Pesquisa nasce para mudar esse cenário, transformando o processo em algo acessível, transparente e colaborativo.
+Essa falta de conexão torna a pesquisa:
 
----
+- Centralizada (restrita a grupos pequenos)
+- Desmotivadora para iniciantes
+- Pouco inovadora, pela falta de interdisciplinaridade
 
-## 👥 Público-Alvo
+A plataforma Conecta Pesquisa surge para resolver esse cenário, aproximando docentes e discentes através de interesses, objetivos e competências compartilhadas.
 
-### Docentes  
-Professores que buscam divulgar oportunidades e encontrar estudantes com competências específicas.
+## 👥 Público-alvo
 
-### Discentes  
-Estudantes interessados em engajar-se em pesquisa científica, extensão ou projetos inovadores alinhados à sua trajetória acadêmica.
+### 👩‍🏫 Docentes  
+Professores que querem divulgar projetos, acompanhar candidaturas e selecionar alunos qualificados.
 
----
-
-## 🧩 Funcionalidades
-
-### Para Docentes
-- Criar e gerenciar projetos.
-- Avaliar candidaturas de alunos.
-- Pesquisar perfis acadêmicos filtrando por: áreas, habilidades, campus, curso etc.
-- Encerrar projetos e controlar participação.
-
-### Para Discentes
-- Criar e manter perfil acadêmico com habilidades, interesses e links públicos (ex: CV Lattes, GitHub).
-- Explorar oportunidades disponíveis.
-- Inscrever-se com mensagem personalizada.
-- Acompanhar status das candidaturas.
+### 🎓 Discentes  
+Estudantes buscando oportunidades de iniciar sua trajetória científica ou participar de projetos práticos.
 
 ---
 
-## ⚙️ Requisitos Funcionais
+# ⚙️ 3) Funcionalidades por Tipo de Usuário
 
-### 🧑‍🏫 Docentes
+## 👩‍🏫 Perfil Docente
 
-| Código | Nome | Descrição | Critérios de Aceite |
-|--------|------|-----------|--------------------|
-| RF-DOC-01 | Criar projeto | Cadastro com título, descrição, objetivos, requisitos, tipo, prazo, campus, carga horária e vagas. | - Não salvar sem título.<br>- Status inicial: `ABERTO` *(RN-01)* |
-| RF-DOC-02 | Editar projeto | Permite ajustes enquanto o status ≠ `CONCLUÍDO`. | - Só editar status ≠ `CONCLUÍDO`.<br>- Prazo novo ≥ data atual *(RN-02)* |
-| RF-DOC-04 | Gerenciar participantes | Adicionar/remover alunos aprovados. | - Apenas candidaturas com status `ACEITA`. |
-| RF-DOC-05 | Avaliar candidaturas | Aceitar ou recusar. | - Status se torna `ACEITA` ou `RECUSADA`. |
-| RF-DOC-07 | Pesquisar perfis | Busca por nome de aluno. | - Filtro mínimo: nome. |
-| RF-DOC-08 | Encerrar projeto | Fecha candidaturas e define status final. | - Candidaturas pendentes → `NÃO_AVALIADA_ENCERRADA`. |
+- Criar projetos
+- Editar e encerrar projetos
+- Avaliar candidaturas
+- Gerenciar participantes
+- Pesquisar perfis de alunos
 
+## 🎓 Perfil Discente
 
-### 🎓 Discentes
-
-| Código | Nome | Descrição | Critérios de Aceite |
-|--------|------|-----------|--------------------|
-| RF-DIS-01 | Criar/Atualizar perfil | Preencher curso, campus, período, áreas, habilidades, links. | - Campos mínimos: curso e período. |
-| RF-DIS-02 | Buscar projetos | Listar apenas projetos `ABERTO`. | - Exibir vagas + prazo restante. *(RN-03)* |
-| RF-DIS-03 | Ver detalhes | Página completa do projeto. | - Mostrar status, vagas, prazo, docente responsável, modalidade. |
-| RF-DIS-04 | Enviar candidatura | Botão “Quero participar” + mensagem. | - Bloquear duplicatas *(RN-09)*.<br>- Status inicial: `PENDENTE`. |
-| RF-DIS-05 | Acompanhar status | Ver histórico de candidaturas. | - Status possíveis: `PENDENTE`, `ACEITA`, `RECUSADA`, `NÃO_AVALIADA_ENCERRADA`. |
-| RF-DIS-07 | Acesso ao projeto | Após aprovação, participar da equipe. | - Acesso ao mural.<br>- Remoção exclui acesso. |
+- Criar perfil acadêmico
+- Buscar projetos disponíveis
+- Ver detalhes e candidatar-se
+- Acompanhar status das candidaturas
+- Acessar murais dos projetos aprovados
 
 ---
 
-## 🧠 Regras de Negócio
+# 📋 4) Requisitos Funcionais
 
-### Estados & Transições
-- `ABERTO → EM_ANDAMENTO → CONCLUÍDO`
-- Prazo mínimo: ≥ D+1
-- Candidaturas permitidas apenas com status `ABERTO` + prazo válido.
+## 👩‍🏫 Docente (RF-DOC)
 
-### Limites & Integridade
-- Candidatura única por projeto.
-- Perfil mínimo para se inscrever: curso + período.
-- Links até 5 URLs válidas.
-- Vagas possuem controle automático de lotação.
-- Remoções geram histórico (não apagamos nada).
+### RF-DOC-01 — Criar projeto
+Projeto com título, objetivos, requisitos, tipo, carga horária, vagas e prazo de inscrição.
 
-### Auditoria & Persistência
-- Todas as decisões são registradas.
-- Exclusões são **lógicas**, nunca físicas.
+### RF-DOC-02 — Editar projeto
+Permitido apenas enquanto status ≠ CONCLUÍDO.
 
----
+### RF-DOC-04 — Gerenciar participantes
+Remover membros com justificativa obrigatória.
 
-## 🧱 Requisitos Não-Funcionais
+### RF-DOC-05 — Avaliar candidaturas
+Aceitar ou recusar solicitações.
 
-- Sistema deve ser responsivo e acessível.
-- Auditoria completa por ação.
-- Estrutura escalável para múltiplos campi.
-- Segurança na validação de links e dados sensíveis.
-- Persistência com exclusão reversível (soft delete).
+### RF-DOC-07 — Pesquisar perfis
+Busca por nome com modal detalhado.
+
+### RF-DOC-08 — Encerrar projeto
+Candidaturas pendentes viram “NÃO_AVALIADA_ENCERRADA”.
 
 ---
 
-## 🏗️ Visão de Futuro
+## 🎓 Discente (RF-DIS)
 
-A primeira versão foca na conexão.  
-A próxima será sobre inteligência: recomendações automáticas, trilhas de pesquisa, chatbot orientador, histórico de carreira acadêmica e integração com plataformas governamentais.
+### RF-DIS-01 — Criar perfil acadêmico
+Curso, período, habilidades (tags), links e contato.
+
+### RF-DIS-02 — Buscar projetos
+Exibe apenas projetos ABERTOS.
+
+### RF-DIS-03 — Ver detalhes
+Modal com todas as informações.
+
+### RF-DIS-04 — Enviar candidatura
+Mensagem + validações de perfil.
+
+### RF-DIS-05 — Acompanhar status
+Badges de status.
+
+### RF-DIS-07 — Acessar “Meus Murais”
+Projetos aprovados aparecem nesta seção.
 
 ---
 
-## 💬 Conclusão
+# 🛡️ 5) Requisitos Não-Funcionais
 
-A Conecta Pesquisa não é apenas um software — é uma ponte. Uma ponte entre quem quer aprender e quem pode orientar; entre ideias dispersas e projetos transformadores; entre potencial e impacto.
+## Estados & Transições
 
-A estrada se abre agora.
+- RN-01 — Fluxo ABERTO → CONCLUÍDO
+- RN-02 — Prazo futuro
+- RN-03 — Candidatura permitida apenas se dentro da data
+- RN-04 — Fechamento automático
 
-> Ciência é colaboração. Inovação é encontro. Esta plataforma existe para unir os dois.
+## Capacidade & Duplicidade
+
+- RN-06 — Perfil mínimo obrigatório
+- RN-08 — Validação de URLs
+- RN-09 — 1 candidatura por projeto
+- RN-10 — Controle de vagas
+
+## Mensagens & Anexos
+
+- RN-15 — Histórico de remoção exige motivo
+
+## Auditoria
+
+- RN-16 — Todas ações críticas são logadas
+
+## Integridade
+
+- RN-20 — Soft Delete
+- RN-21 — Campos obrigatórios
 
 ---
 
-📌 *Documento versão inicial — passível de expansão conforme escopo e roadmap.*
-```markdown
+# 🧩 6) Diagramas
+
+## 📘 Diagrama de Classes
+![Classes UML](https://drive.google.com/uc?export=view&id=11dxdpWd2tc_8D5jPTsUaVt0aJMB7F3HO)
+
+## 🎭 Casos de Uso
+![Casos de Uso](https://drive.google.com/uc?export=view&id=10tHVvIChhB3Eh-NRKNHoiVS0_-ylHpfb)
+
+## 🖥️ Deployment
+![Deployment](https://drive.google.com/uc?export=view&id=1_0fqJt2d5U0uLflZyKU7ZjeFxN0musB-)
+
+## 🔄 Sequência
+![Sequência](https://drive.google.com/uc?export=view&id=1cEvlkQ2jYkXEr-oDVb7COeLuBhZnATYB)
+
+## 🔁 Fluxo de Atividade
+![Fluxo de Atividade](https://drive.google.com/uc?export=view&id=1S-CRRCHF1bK9OsfAtJvZKEouOnDVBweX)
+
+## 🧱 Componentes
+![Componente](https://drive.google.com/uc?export=view&id=1zmzR8DfziBgIQmea0hVGICBCn_N4Zs4U)
+
+---
+
+# ✅ Conclusão
+
+O **Conecta Pesquisa** organiza, centraliza e facilita toda a comunicação entre alunos e professores da UFAM, promovendo um ambiente mais colaborativo, acessível e transparente para projetos acadêmicos.
+
+Este README compila toda a visão do sistema — desde o problema até os requisitos e diagramas — permitindo compreender rapidamente o objetivo e o funcionamento da plataforma.
+
+---
