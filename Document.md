@@ -268,3 +268,7 @@ Projetos com status ACEITA aparecem em uma aba exclusiva "Meus Murais" ou "Proje
 
 ### Componente.jpeg
 ![Componente](https://drive.google.com/uc?export=view&id=1zmzR8DfziBgIQmea0hVGICBCn_N4Zs4U)
+
+### DER.jpeg
+![Der](https://drive.google.com/uc?export=view&id=1aLPIR2lXOWH_TweyDZqaUTHYeLRdLEl5)
+
