@@ -5,7 +5,7 @@ import {
   FaUserGraduate, FaEnvelope, FaTimes, FaUniversity, FaBuilding,
   FaClipboardList, FaUsers, FaRocket, FaUserCircle, FaPowerOff, 
   FaBullhorn, FaPaperPlane, FaTrash, FaPlus, FaListUl, FaCheckCircle, FaEdit, FaBan, FaCheck,
-  FaExclamationTriangle, FaQuestionCircle, FaInfoCircle, FaSpinner, FaEye, FaEyeSlash, FaFilter, FaArrowRight, FaEllipsisV, FaUser
+  FaExclamationTriangle, FaQuestionCircle, FaInfoCircle, FaSpinner, FaEye, FaEyeSlash, FaFilter, FaArrowRight, FaEllipsisV, FaUser, FaChevronDown
 } from 'react-icons/fa';
 import Slider from "react-slick"; 
 import api from './api';
@@ -390,6 +390,9 @@ function Dashboard() {
   const [search, setSearch] = useState('');
   const [searchResults, setSearchResults] = useState([]);
   
+  // MENU SUSPENSO (Dropdown)
+  const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
+
   // MODAIS STATE
   const [viewProj, setViewProj] = useState(null); 
   const [projectModalData, setProjectModalData] = useState(null); 
@@ -565,7 +568,6 @@ function Dashboard() {
 
   if (!user) return null;
 
-  // Proteção extra no filter para evitar tela branca
   const filteredProjects = (data.projects || []).filter(p => {
     const title = p.titulo || '';
     const type = p.tipo || '';
@@ -604,25 +606,49 @@ function Dashboard() {
           </nav>
 
           <div className="flex items-center gap-4">
-            <button className="bg-white p-3 rounded-full text-gray-600 hover:bg-gray-100 transition shadow-sm hidden sm:block"><FaSearch/></button>
-            <div className="flex items-center gap-3 bg-white px-5 py-2.5 rounded-full shadow-sm border border-gray-100 cursor-pointer group hover:shadow-md transition" onClick={() => setTab('perfil')}>
-              <FaUserCircle className="text-2xl text-gray-400 group-hover:text-[#243B53] transition" />
-              <span className="text-sm font-bold text-[#1c2b36] hidden md:block">Olá, {user.role === 'docente' ? 'Professor(a)' : 'Aluno(a)'} {firstName}</span>
-              <button onClick={(e) => { e.stopPropagation(); localStorage.clear(); navigate('/'); }} className="ml-2 text-gray-400 hover:text-red-500 transition"><FaPowerOff/></button>
+            <button onClick={() => setTab('projetos')} className="bg-white p-3 rounded-full text-gray-600 hover:bg-gray-100 transition shadow-sm hidden sm:block"><FaSearch/></button>
+            
+            {/* DROPDOWN DO USUÁRIO */}
+            <div className="relative" onMouseLeave={() => setIsUserMenuOpen(false)}>
+              <div 
+                className="flex items-center gap-3 bg-white px-5 py-2.5 rounded-full shadow-sm border border-gray-100 cursor-pointer group hover:shadow-md transition" 
+                onClick={() => setIsUserMenuOpen(!isUserMenuOpen)}
+              >
+                <FaUserCircle className="text-2xl text-gray-400 group-hover:text-[#243B53] transition" />
+                <span className="text-sm font-bold text-[#1c2b36] hidden md:block">Olá, {user.role === 'docente' ? 'Professor(a)' : 'Aluno(a)'} {firstName}</span>
+                <FaChevronDown className="text-gray-400 text-xs ml-1 transition-transform" style={{ transform: isUserMenuOpen ? 'rotate(180deg)' : 'rotate(0deg)' }} />
+              </div>
+
+              {isUserMenuOpen && (
+                <div className="absolute right-0 mt-2 w-48 bg-white rounded-2xl shadow-xl border border-gray-100 overflow-hidden z-50 animate-fadeIn">
+                  {user.role === 'docente' ? (
+                    <button onClick={() => { handleEditOrCreate(null); setIsUserMenuOpen(false); }} className="w-full text-left px-5 py-3.5 text-sm font-bold text-[#1c2b36] hover:bg-gray-50 flex items-center gap-3">
+                      <FaPlus className="text-blue-500" /> Criar Projeto
+                    </button>
+                  ) : (
+                    <button onClick={() => { setTab('perfil'); setIsUserMenuOpen(false); }} className="w-full text-left px-5 py-3.5 text-sm font-bold text-[#1c2b36] hover:bg-gray-50 flex items-center gap-3">
+                      <FaUser className="text-blue-500" /> Meu Perfil
+                    </button>
+                  )}
+                  <button onClick={() => { localStorage.clear(); navigate('/'); }} className="w-full text-left px-5 py-3.5 text-sm font-bold text-red-600 hover:bg-red-50 flex items-center gap-3 border-t border-gray-100">
+                    <FaPowerOff /> Sair da Conta
+                  </button>
+                </div>
+              )}
             </div>
           </div>
         </div>
       </header>
 
-      {/* HERO SECTION */}
+      {/* HERO SECTION COM NOVO ENQUADRAMENTO */}
       {tab === 'inicio' && (
         <>
           <div 
-            className="pt-48 pb-24 px-4 md:px-12 relative overflow-hidden min-h-[650px] flex items-center bg-[#E2E8F0]"
+            className="pt-56 pb-24 px-4 md:px-12 relative overflow-hidden min-h-[680px] flex items-center bg-[#E2E8F0]"
             style={{
               backgroundImage: user.role === 'discente' ? "url('/imagens/fundo-aluno.png')" : "url('/imagens/fundo-professor.png')",
               backgroundSize: 'cover',
-              backgroundPosition: 'center top',
+              backgroundPosition: 'center 20%', // <-- Enquadramento corrigido para não cortar a cabeça
               backgroundRepeat: 'no-repeat'
             }}
           >
@@ -658,9 +684,7 @@ function Dashboard() {
                     </button>
                   ) : (
                     <>
-                      <button onClick={() => handleEditOrCreate(null)} className="bg-[#1c2b36] text-white px-8 py-4 rounded-full font-bold shadow-xl hover:bg-gray-900 transition flex items-center gap-3">
-                        Criar Projeto <FaArrowRight/>
-                      </button>
+                      {/* Removido o botão de criar projeto daqui, conforme solicitado */}
                       <button onClick={() => setTab('equipes')} className="bg-white text-[#1c2b36] border-2 border-gray-200 px-8 py-4 rounded-full font-bold hover:bg-gray-50 transition flex items-center gap-3">
                         Gerenciar Projetos <FaClipboardList/>
                       </button>
@@ -713,8 +737,15 @@ function Dashboard() {
                       
                       <div className="mt-auto grid grid-cols-2 gap-3 pt-2">
                         <button onClick={() => setViewProj(p)} className="py-3 rounded-2xl border-2 border-gray-200 text-gray-700 font-bold hover:bg-gray-50 hover:border-gray-300 transition text-sm">Ver Detalhes</button>
+                        
                         {user.role === 'discente' ? (
-                          <button onClick={() => apply(p.id)} className="py-3 rounded-2xl bg-[#1c2b36] text-white font-bold hover:bg-gray-900 shadow-md transition text-sm">Participar</button>
+                          myStatusInProject(p.id) ? (
+                            <div className="py-3 rounded-2xl bg-gray-100 text-gray-500 font-bold text-sm text-center flex justify-center items-center gap-2 border-2 border-gray-200">
+                              <FaClock /> Aguardando
+                            </div>
+                          ) : (
+                            <button onClick={() => apply(p.id)} className="py-3 rounded-2xl bg-[#1c2b36] text-white font-bold hover:bg-gray-900 shadow-md transition text-sm">Participar</button>
+                          )
                         ) : (
                           <button onClick={() => setTab('equipes')} className="py-3 rounded-2xl bg-[#1c2b36] text-white font-bold hover:bg-gray-900 shadow-md transition text-sm">Gerenciar</button>
                         )}
@@ -747,7 +778,9 @@ function Dashboard() {
           <div className="flex flex-wrap items-center gap-4 mb-10 border-b-2 border-gray-200 pb-6">
              <h2 className="text-3xl font-extrabold text-[#1c2b36] capitalize flex-1">{tab === 'equipes' ? 'Gerenciar Projetos' : tab}</h2>
              <div className="flex flex-wrap gap-2">
-              {['projetos', 'candidaturas', user.role === 'docente' ? 'equipes' : 'murais', 'perfil'].map(item => (
+              {['projetos', 'candidaturas', user.role === 'docente' ? 'equipes' : 'murais', 'perfil']
+                .filter(item => item !== 'perfil' || user.role === 'discente') // Impede perfil de aparecer na aba pro docente
+                .map(item => (
                 <button key={item} onClick={() => setTab(item)} className={`px-6 py-2.5 rounded-full text-sm font-bold transition-all border-2 ${tab === item ? 'bg-[#1c2b36] text-white border-[#1c2b36] shadow-md' : 'bg-transparent text-gray-500 border-transparent hover:bg-gray-100'}`}>
                   {item === 'equipes' ? 'Equipes' : item.charAt(0).toUpperCase() + item.slice(1)}
                 </button>
@@ -774,11 +807,6 @@ function Dashboard() {
                           <option value="CONCLUIDO">Concluídos</option>
                         </select>
                       </div>
-                      {user.role === 'docente' && (
-                        <button onClick={() => handleEditOrCreate(null)} className="bg-[#1c2b36] text-white px-8 py-3 rounded-xl font-bold shadow-md hover:bg-gray-900 transition flex items-center justify-center gap-3 whitespace-nowrap flex-1 md:flex-none h-[52px]">
-                          <FaPlus /> <span className="hidden sm:inline">Criar Projeto</span>
-                        </button>
-                      )}
                     </div>
                   </div>
 
@@ -804,14 +832,22 @@ function Dashboard() {
                             
                             <div className="mt-auto space-y-3">
                               <button onClick={() => setViewProj(p)} className="w-full py-3 rounded-2xl border-2 border-gray-200 text-gray-700 font-bold hover:bg-gray-50 transition text-sm">Ver Detalhes</button>
+                              
                               {user.role === 'docente' && p.status !== 'CONCLUIDO' && (
                                 <div className="grid grid-cols-2 gap-2">
                                   <button onClick={() => handleEditOrCreate(p)} className="py-2.5 rounded-2xl bg-blue-50 text-blue-700 font-bold hover:bg-blue-100 transition text-xs flex items-center justify-center gap-2"><FaEdit /> Editar</button>
                                   <button onClick={() => handleCloseProject(p.id)} className="py-2.5 rounded-2xl bg-yellow-50 text-yellow-700 font-bold hover:bg-yellow-100 transition text-xs flex items-center justify-center gap-2"><FaBan /> Encerrar</button>
                                 </div>
                               )}
+                              
                               {user.role === 'discente' && p.status === 'ABERTO' && !myStatusInProject(p.id) && !expired && (
                                 <button onClick={() => apply(p.id)} className="w-full py-3 rounded-2xl bg-[#243B53] text-white font-bold hover:bg-[#1a2a3b] shadow-md transition text-sm">Candidatar-se</button>
+                              )}
+
+                              {user.role === 'discente' && myStatusInProject(p.id) && (
+                                <button disabled className="w-full py-3 rounded-2xl bg-gray-100 text-gray-500 font-bold shadow-sm transition text-sm border-2 border-gray-200 flex items-center justify-center gap-2">
+                                  <FaClock/> Aguardando
+                                </button>
                               )}
                             </div>
                           </div>
@@ -891,11 +927,16 @@ function Dashboard() {
                   </div>
                   
                   <div className="space-y-8">
+                    {(data.projects || []).length === 0 && (
+                      <div className="text-center py-20 bg-white rounded-2xl border border-dashed border-gray-300">
+                        <p className="text-gray-500 font-bold text-lg">Você ainda não criou nenhum projeto.</p>
+                      </div>
+                    )}
                     {(data.projects || []).map(p => (
                       <div key={p.id} className="bg-white rounded-[2rem] shadow-lg border border-gray-100 overflow-hidden">
                         <div className="p-8 border-b border-gray-100 bg-gray-50 flex justify-between items-center">
                           <div>
-                            <span className="text-[10px] font-extrabold text-blue-700 bg-blue-100 px-3 py-1 rounded-md uppercase tracking-widest">{p.tipo || 'PESQUISA'}</span>
+                            <span className="text-[10px] font-extrabold text-[#1c2b36] bg-blue-50 px-3 py-1 rounded-md uppercase tracking-widest">{p.tipo || 'PESQUISA'}</span>
                             <h3 className="font-extrabold text-2xl text-gray-900 mt-3">{p.titulo}</h3>
                           </div>
                           <span className="text-sm font-bold text-gray-700 bg-white px-5 py-3 rounded-2xl border border-gray-200 shadow-sm">
@@ -922,8 +963,8 @@ function Dashboard() {
                           
                           <div className="bg-gray-50 p-6 rounded-[2rem] border border-gray-100">
                             <h4 className="text-sm font-extrabold text-gray-500 uppercase tracking-widest mb-4">Mural do Projeto</h4>
-                            <textarea className="w-full border-2 border-gray-200 rounded-xl p-4 text-sm bg-white focus:border-blue-300 outline-none resize-none h-24 mb-4" placeholder="Enviar novo aviso..." value={postContent[p.id] || ''} onChange={(e) => setPostContent({ ...postContent, [p.id]: e.target.value })} />
-                            <button onClick={() => postToMural(p.id)} className="w-full bg-[#243B53] text-white py-3 rounded-xl font-bold hover:bg-[#1a2a3b] transition">Publicar</button>
+                            <textarea className="w-full border-2 border-gray-200 rounded-xl p-4 text-sm bg-white focus:border-[#1c2b36] outline-none resize-none h-24 mb-4" placeholder="Enviar novo aviso..." value={postContent[p.id] || ''} onChange={(e) => setPostContent({ ...postContent, [p.id]: e.target.value })} />
+                            <button onClick={() => postToMural(p.id)} className="w-full bg-[#1c2b36] text-white py-3 rounded-xl font-bold hover:bg-gray-900 transition shadow-md flex items-center justify-center gap-2"><FaPaperPlane/> Publicar</button>
                             
                             {p.mural_posts?.length > 0 && (
                               <div className="mt-6 border-t border-gray-200 pt-4 space-y-3">
@@ -944,7 +985,7 @@ function Dashboard() {
               {/* ABA CANDIDATURAS */}
               {tab === 'candidaturas' && (
                 <div className="max-w-6xl mx-auto bg-white rounded-[2rem] shadow-lg border border-gray-100 overflow-hidden">
-                  <div className="bg-[#243B53] p-8 text-white">
+                  <div className="bg-[#1c2b36] p-8 text-white">
                       <h3 className="text-2xl font-extrabold">{user.role === 'discente' ? 'Minhas Candidaturas' : 'Gerenciar Candidaturas'}</h3>
                   </div>
                   <div className="divide-y divide-gray-100 p-4">
@@ -1057,12 +1098,12 @@ function Dashboard() {
                 
                 <div className="space-y-6">
                   <div>
-                    <label className="block text-sm font-bold text-gray-900 mb-2">Título do Projeto</label>
+                    <label className="block text-sm font-bold text-[#1c2b36] mb-2">Título do Projeto</label>
                     <input name="titulo" defaultValue={projectModalData.titulo} required className="w-full border-2 border-gray-200 p-4 rounded-2xl bg-gray-50 focus:bg-white focus:border-[#1c2b36] outline-none transition font-medium text-lg" placeholder="Ex: Impactos da IA na Educação..." />
                   </div>
                   
                   <div>
-                    <label className="block text-sm font-bold text-gray-900 mb-2">Descrição Detalhada</label>
+                    <label className="block text-sm font-bold text-[#1c2b36] mb-2">Descrição Detalhada</label>
                     <textarea name="descricao" defaultValue={projectModalData.descricao} required className="w-full border-2 border-gray-200 p-4 rounded-2xl bg-gray-50 focus:bg-white focus:border-[#1c2b36] outline-none transition h-32 resize-none font-medium" placeholder="Explique os detalhes, metodologia e o que espera alcançar..." />
                   </div>
                   
