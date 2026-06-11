@@ -5,8 +5,9 @@ import {
   FaUserGraduate, FaEnvelope, FaTimes, FaUniversity, FaBuilding,
   FaClipboardList, FaUsers, FaRocket, FaUserCircle, FaPowerOff, 
   FaBullhorn, FaPaperPlane, FaTrash, FaPlus, FaListUl, FaCheckCircle, FaEdit, FaBan, FaCheck,
-  FaExclamationTriangle, FaQuestionCircle, FaInfoCircle, FaSpinner, FaEye, FaEyeSlash, FaFilter, FaChartLine, FaArrowRight, FaEllipsisV
+  FaExclamationTriangle, FaQuestionCircle, FaInfoCircle, FaSpinner, FaEye, FaEyeSlash, FaFilter, FaArrowRight, FaEllipsisV, FaUser
 } from 'react-icons/fa';
+import Slider from "react-slick"; 
 import api from './api';
 
 // --- COMPONENTE DE SEGURANÇA ---
@@ -28,7 +29,7 @@ const getDaysLeft = (dateString) => {
   const deadline = new Date(dateString);
   deadline.setHours(23, 59, 59, 999);
   const diff = deadline - new Date();
-  return Math.ceil(diff / (1000 * 60 * 60 * 24));
+  return Math.max(0, Math.ceil(diff / (1000 * 60 * 60 * 24)));
 };
 
 const formatDate = (dateString) => {
@@ -59,7 +60,7 @@ const authBackgroundStyle = {
 
 // COMPONENTE DE LOADING GLOBAL
 const LoadingSpinner = ({ message = "Carregando..." }) => (
-  <div className="flex flex-col items-center justify-center p-12 text-gray-500">
+  <div className="flex flex-col items-center justify-center p-12 text-gray-500 min-h-[50vh]">
     <FaSpinner className="animate-spin text-5xl text-[#1c2b36] mb-4" />
     <p className="font-bold text-lg animate-pulse text-gray-600">{message}</p>
   </div>
@@ -179,6 +180,25 @@ function InputModal({ data, onCancel }) {
   );
 }
 
+// --- SETAS DO CARROSSEL ---
+function SampleNextArrow(props) {
+  const { onClick } = props;
+  return (
+    <div className="absolute top-1/2 -translate-y-1/2 right-8 z-20 cursor-pointer text-white opacity-60 hover:opacity-100 transition-all hover:scale-110 drop-shadow-lg bg-black/20 p-2 rounded-full backdrop-blur-sm" onClick={onClick} aria-label="Próximo">
+      <FaChevronRight className="text-4xl" />
+    </div>
+  );
+}
+
+function SamplePrevArrow(props) {
+  const { onClick } = props;
+  return (
+    <div className="absolute top-1/2 -translate-y-1/2 left-8 z-20 cursor-pointer text-white opacity-60 hover:opacity-100 transition-all hover:scale-110 drop-shadow-lg bg-black/20 p-2 rounded-full backdrop-blur-sm" onClick={onClick} aria-label="Anterior">
+      <FaChevronLeft className="text-4xl" />
+    </div>
+  );
+}
+
 // --- PÁGINAS LOGIN E REGISTER ---
 function Login() {
   const [form, setForm] = useState({ email: '', password: '' });
@@ -259,10 +279,10 @@ function Register() {
   const navigate = useNavigate();
 
   const reqs = {
-    nome: { req: form.nome.trim().length > 0, len: form.nome.trim().length >= 3 },
-    email: { req: form.email.trim().length > 0, valid: /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email) },
-    password: { req: form.password.length > 0, len: form.password.length >= 6, letter: /[a-zA-Z]/.test(form.password), number: /\d/.test(form.password), special: /[^a-zA-Z0-9]/.test(form.password) },
-    confirm: { req: confirmPwd.length > 0, match: confirmPwd === form.password && form.password.length > 0 }
+    nome: { req: (form.nome || '').trim().length > 0, len: (form.nome || '').trim().length >= 3 },
+    email: { req: (form.email || '').trim().length > 0, valid: /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email || '') },
+    password: { req: (form.password || '').length > 0, len: (form.password || '').length >= 6, letter: /[a-zA-Z]/.test(form.password || ''), number: /\d/.test(form.password || ''), special: /[^a-zA-Z0-9]/.test(form.password || '') },
+    confirm: { req: confirmPwd.length > 0, match: confirmPwd === form.password && (form.password || '').length > 0 }
   };
 
   const isFormValid = reqs.nome.req && reqs.nome.len && reqs.email.req && reqs.email.valid && reqs.password.req && reqs.password.len && reqs.password.letter && reqs.password.number && reqs.password.special && reqs.confirm.req && reqs.confirm.match;
@@ -353,7 +373,7 @@ function Dashboard() {
   const navigate = useNavigate();
   
   const [isLoading, setIsLoading] = useState(true);
-  const [tab, setTab] = useState('inicio'); // Nova aba padrão Início
+  const [tab, setTab] = useState('inicio'); 
   const [data, setData] = useState({ projects: [], applications: [], profile: {} });
   
   const [skillsList, setSkillsList] = useState([]);
@@ -396,12 +416,12 @@ function Dashboard() {
     try {
       const p = await api.get('/projects');
       const a = await api.get('/applications');
-      if (user.role === 'discente') {
+      if (user?.role === 'discente') {
         const prof = await api.get('/profile');
-        setData({ projects: p.data, applications: a.data, profile: prof.data });
-        if (prof.data.habilidades) setSkillsList(safeParse(prof.data.habilidades));
+        setData({ projects: p.data || [], applications: a.data || [], profile: prof.data || {} });
+        if (prof.data?.habilidades) setSkillsList(safeParse(prof.data.habilidades));
       } else { 
-        setData({ projects: p.data, applications: a.data, profile: {} }); 
+        setData({ projects: p.data || [], applications: a.data || [], profile: {} }); 
       }
     } catch (e) { 
       if (e.response && e.response.status === 401) { localStorage.clear(); navigate('/'); }
@@ -524,12 +544,12 @@ function Dashboard() {
   const searchStudents = async () => {
     if (!search.trim()) return;
     setIsLoading(true);
-    try { const res = await api.get(`/users/search?nome=${search}`); setSearchResults(res.data); if (res.data.length === 0) notify('info', 'Busca sem resultados', `Não encontramos alunos com esse nome.`); } 
+    try { const res = await api.get(`/users/search?nome=${search}`); setSearchResults(res.data || []); if ((res.data || []).length === 0) notify('info', 'Busca sem resultados', `Não encontramos alunos com esse nome.`); } 
     catch (err) { notify('error', 'Falha na busca', 'Erro ao contatar o servidor.'); } 
     finally { setIsLoading(false); }
   };
 
-  const myStatusInProject = (pid) => { if (user.role !== 'discente') return null; const app = data.applications.find(a => a.project_id === pid); return app ? app.status : null; };
+  const myStatusInProject = (pid) => { if (user?.role !== 'discente') return null; const app = (data.applications || []).find(a => a.project_id === pid); return app ? app.status : null; };
 
   const renderList = (json) => {
     const list = safeParse(json);
@@ -545,11 +565,25 @@ function Dashboard() {
 
   if (!user) return null;
 
-  const filteredProjects = data.projects.filter(p => {
-    const matchText = p.titulo.toLowerCase().includes(filterText.toLowerCase()) || p.tipo.toLowerCase().includes(filterText.toLowerCase());
+  // Proteção extra no filter para evitar tela branca
+  const filteredProjects = (data.projects || []).filter(p => {
+    const title = p.titulo || '';
+    const type = p.tipo || '';
+    const textTarget = filterText || '';
+    const matchText = title.toLowerCase().includes(textTarget.toLowerCase()) || type.toLowerCase().includes(textTarget.toLowerCase());
     const matchStatus = filterStatus === 'ALL' || p.status === filterStatus;
     return matchText && matchStatus;
   });
+
+  const userName = user?.nome || 'Usuário';
+  const firstName = userName.split(' ')[0];
+
+  const carouselSettings = { dots: true, infinite: true, speed: 1000, slidesToShow: 1, slidesToScroll: 1, autoplay: true, autoplaySpeed: 6000, arrows: true, fade: true, nextArrow: <SampleNextArrow />, prevArrow: <SamplePrevArrow />, appendDots: dots => <div style={{ bottom: "20px" }}><ul className="m-0 p-0"> {dots} </ul></div>, customPaging: i => <div className="w-3 h-3 mx-1 bg-white/50 rounded-full transition-all hover:bg-white hover:scale-110"></div> };
+  const carouselSlides = [
+    { id: 1, title: "Explore o Conhecimento", desc: "Conecte-se com projetos inovadores e professores experientes.", img: "/imagens/pesquisa.jpg", btnText: "Ver Pesquisas" },
+    { id: 2, title: "Ações de Extensão", desc: "Conecte a universidade com a comunidade.", img: "/imagens/Extensao.jpg", btnText: "Ver Extensão" },
+    { id: 3, title: "Trabalho Voluntário", desc: "Contribua com seu tempo e habilidades.", img: "/imagens/Volutario.jpg", btnText: "Ser Voluntário" }
+  ];
 
   return (
     <div className="min-h-screen bg-[#F0F4F8] font-sans text-[#1c2b36] relative overflow-x-hidden">
@@ -570,7 +604,7 @@ function Dashboard() {
           
           <nav className="hidden lg:flex items-center gap-8 font-bold text-sm text-[#243B53]">
              <button onClick={() => setTab('inicio')} className={`hover:text-[#1c2b36] transition pb-1 ${tab === 'inicio' ? 'border-b-2 border-[#1c2b36]' : ''}`}>Início</button>
-             <button onClick={() => setTab('projetos')} className={`hover:text-[#1c2b36] transition pb-1 ${tab === 'projetos' ? 'border-b-2 border-[#1c2b36]' : ''}`}>Projetos</button>
+             <button onClick={() => { setTab('projetos'); setFilterText(''); setFilterStatus('ALL'); }} className={`hover:text-[#1c2b36] transition pb-1 ${tab === 'projetos' && !filterText ? 'border-b-2 border-[#1c2b36]' : ''}`}>Projetos</button>
              <button onClick={() => { setTab('projetos'); setFilterText('PESQUISA'); }} className="hover:text-[#1c2b36] transition pb-1">Pesquisa</button>
              <button onClick={() => { setTab('projetos'); setFilterText('EXTENSAO'); }} className="hover:text-[#1c2b36] transition pb-1">Extensão</button>
              <button onClick={() => { setTab('projetos'); setFilterText('VOLUNTARIO'); }} className="hover:text-[#1c2b36] transition pb-1">Voluntariado</button>
@@ -580,7 +614,7 @@ function Dashboard() {
             <button className="bg-white p-3 rounded-full text-gray-600 hover:bg-gray-100 transition shadow-sm hidden sm:block"><FaSearch/></button>
             <div className="flex items-center gap-3 bg-white px-5 py-2.5 rounded-full shadow-sm border border-gray-100 cursor-pointer group hover:shadow-md transition" onClick={() => setTab('perfil')}>
               <FaUserCircle className="text-2xl text-gray-400 group-hover:text-[#243B53] transition" />
-              <span className="text-sm font-bold text-[#1c2b36] hidden md:block">Olá, {user.role === 'docente' ? 'Professor' : 'Aluno'} {user.nome.split(' ')[0]}</span>
+              <span className="text-sm font-bold text-[#1c2b36] hidden md:block">Olá, {user.role === 'docente' ? 'Professor(a)' : 'Aluno(a)'} {firstName}</span>
               <button onClick={(e) => { e.stopPropagation(); localStorage.clear(); navigate('/'); }} className="ml-2 text-gray-400 hover:text-red-500 transition"><FaPowerOff/></button>
             </div>
           </div>
@@ -615,7 +649,7 @@ function Dashboard() {
                 <p className="text-lg text-gray-600 font-medium max-w-lg">
                   {user.role === 'discente' 
                     ? 'Descubra oportunidades de pesquisa, colabore com professores e faça parte de projetos que transformam conhecimento em impacto real.' 
-                    : 'Publique oportunidades, encontre alunos engajados e gerencie seus projetos de pesquisa, extensão e voluntariado com mais eficiência.'}
+                    : 'Publique oportunidades, encontre alunos engajados e gerencie seus projetos de pesquisa, extensão e voluntariado com mais eficiência e impacto.'}
                 </p>
 
                 <div className="pt-4 flex flex-wrap gap-4">
@@ -636,33 +670,56 @@ function Dashboard() {
                 </div>
               </div>
 
-              {/* Placeholder Gráfico do Lado Direito */}
+              {/* Elementos Gráficos do Lado Direito */}
               <div className="hidden md:flex justify-end relative">
-                {/* Aqui seria a imagem principal de background dependendo do perfil, simulando os elementos dos painéis */}
-                <div className="bg-white/60 backdrop-blur-xl border border-white p-6 rounded-[2rem] shadow-2xl relative z-20 transform translate-y-8 -translate-x-8">
-                  <p className="text-xs font-bold text-gray-500 mb-4">Áreas do Conhecimento</p>
-                  <div className="space-y-3">
-                    {['Ciências da Saúde', 'Engenharias', 'Ciências Exatas', 'Tecnologia'].map((area, i) => (
-                      <div key={i} className="flex items-center gap-3">
-                        <p className="text-sm font-medium w-32">{area}</p>
-                        <div className="flex-1 h-2 bg-gray-200 rounded-full overflow-hidden"><div className="h-full bg-blue-500 rounded-full" style={{width: `${Math.random() * 60 + 30}%`}}></div></div>
+                
+                {user.role === 'discente' ? (
+                  <>
+                    <div className="bg-white/60 backdrop-blur-xl border border-white p-6 rounded-[2rem] shadow-2xl relative z-20 transform translate-y-8 -translate-x-8">
+                      <p className="text-xs font-bold text-gray-500 mb-4">Áreas do Conhecimento</p>
+                      <div className="space-y-3">
+                        {['Ciências da Saúde', 'Engenharias', 'Ciências Humanas', 'Ciências Exatas', 'Tecnologias'].map((area, i) => (
+                          <div key={i} className="flex items-center gap-3">
+                            <p className="text-[11px] font-bold text-gray-600 w-32">{area}</p>
+                            <div className="flex-1 h-2 bg-gray-200 rounded-full overflow-hidden w-24"><div className="h-full bg-blue-500 rounded-full" style={{width: `${Math.random() * 60 + 30}%`}}></div></div>
+                          </div>
+                        ))}
                       </div>
-                    ))}
-                  </div>
-                </div>
+                    </div>
+                    
+                    <div className="bg-white p-6 rounded-[2rem] shadow-xl absolute top-0 right-10 z-30">
+                      <p className="text-xs font-bold text-gray-500">Impacto Gerado</p>
+                      <h4 className="text-3xl font-extrabold text-[#1c2b36] mt-1">+35%</h4>
+                      <p className="text-[10px] font-bold text-gray-400">em publicações</p>
+                      <div className="mt-4 flex items-end gap-1 h-12">
+                        {[3,5,4,7,6,8,5,9].map((h,i) => <div key={i} className="w-2 bg-blue-300 rounded-t-sm" style={{height: `${h*10}%`}}></div>)}
+                      </div>
+                    </div>
+                  </>
+                ) : (
+                  <>
+                    <div className="bg-white/80 backdrop-blur-xl border border-white p-6 rounded-[2rem] shadow-2xl relative z-20 transform translate-y-16 -translate-x-12 flex items-center gap-4">
+                      <div>
+                        <p className="text-xs font-bold text-gray-500">Candidaturas Recebidas</p>
+                        <h4 className="text-4xl font-extrabold text-[#1c2b36] mt-1">{(data.applications || []).length || 142}</h4>
+                        <p className="text-[10px] font-bold text-green-500 mt-1 flex items-center gap-1"><FaChartLine/> +28% esta semana</p>
+                      </div>
+                    </div>
+                    
+                    <div className="bg-white p-6 rounded-[2rem] shadow-xl absolute -top-4 right-4 z-30">
+                      <p className="text-xs font-bold text-gray-500">Projetos Ativos</p>
+                      <h4 className="text-3xl font-extrabold text-[#1c2b36] mt-1">{(data.projects || []).length || 18}</h4>
+                      <div className="mt-3 text-[10px] font-bold text-gray-500 space-y-1">
+                        <p><span className="text-blue-500">{((data.projects || []).filter(p=>p.status==='ABERTO').length) || 6}</span> em análise</p>
+                        <p><span className="text-green-500">{((data.projects || []).filter(p=>p.status==='CONCLUIDO').length) || 12}</span> em andamento</p>
+                      </div>
+                    </div>
+                  </>
+                )}
                 
-                <div className="bg-white p-6 rounded-[2rem] shadow-xl absolute top-0 right-10 z-30">
-                  <p className="text-xs font-bold text-gray-500">Impacto Gerado</p>
-                  <h4 className="text-3xl font-extrabold text-[#1c2b36] mt-1">+35%</h4>
-                  <p className="text-xs font-medium text-gray-400">em publicações</p>
-                  <div className="mt-4 flex items-end gap-1 h-12">
-                    {[3,5,4,7,6,8,5,9].map((h,i) => <div key={i} className="w-2 bg-blue-200 rounded-t-sm" style={{height: `${h*10}%`}}></div>)}
-                  </div>
-                </div>
-                
-                <div className="w-80 h-96 bg-gray-300 rounded-[3rem] shadow-inner relative z-10 overflow-hidden">
-                   {/* Fallback de imagem de pessoa (Na aplicação real, coloque a URL da imagem das pessoas) */}
-                   <div className="absolute inset-0 bg-[#243B53] flex items-center justify-center text-white/20 text-6xl"><FaUser/></div>
+                <div className="w-80 h-[26rem] bg-gray-300 rounded-[3rem] shadow-inner relative z-10 overflow-hidden flex items-end justify-center">
+                   {/* Fallback caso não tenha a imagem real da moça do design */}
+                   <div className="absolute inset-0 bg-[#243B53] flex items-center justify-center text-white/10 text-9xl"><FaUser/></div>
                 </div>
               </div>
             </div>
@@ -671,66 +728,66 @@ function Dashboard() {
           {/* SESSÃO DE DESTAQUES (Cards Horizontais) */}
           <div className="max-w-[1400px] mx-auto px-4 md:px-12 py-16">
             <div className="flex items-center gap-3 mb-8">
-              <FaUserCircle className="text-blue-500 text-xl"/> 
-              <h3 className="text-xl font-extrabold text-[#1c2b36]">
+              <div className="p-2 bg-blue-100 text-blue-600 rounded-full"><FaUserCircle className="text-xl"/></div> 
+              <h3 className="text-2xl font-extrabold text-[#1c2b36]">
                 {user.role === 'discente' ? 'Projetos em Destaque' : 'Meus Projetos em Destaque'}
               </h3>
-              {user.role === 'docente' && <p className="text-sm text-gray-500 ml-2 hidden sm:block">Acompanhe e gerencie seus principais projetos em andamento.</p>}
+              {user.role === 'docente' && <p className="text-sm text-gray-500 ml-2 hidden md:block font-medium">Acompanhe e gerencie seus principais projetos em andamento.</p>}
             </div>
 
             {isLoading ? <LoadingSpinner message="Carregando destaques..." /> : (
               <div className="flex gap-6 overflow-x-auto pb-8 snap-x snap-mandatory hide-scrollbar">
-                {data.projects.slice(0, 5).map(p => {
+                {(data.projects || []).slice(0, 5).map(p => {
                   const expired = checkExpired(p.prazo_inscricao);
                   return (
-                    <div key={p.id} className="min-w-[320px] bg-white p-6 rounded-[2rem] shadow-sm border border-gray-100 flex flex-col snap-start hover:shadow-xl transition-all duration-300 relative group">
+                    <div key={p.id} className="min-w-[320px] max-w-[320px] bg-white p-6 rounded-[2rem] shadow-sm border border-gray-100 flex flex-col snap-start hover:shadow-xl transition-all duration-300 relative group">
                       <div className="flex justify-between items-start mb-4">
                         <div className="flex gap-2">
-                          <span className="text-[10px] font-extrabold text-blue-700 bg-blue-50 px-3 py-1 rounded-md uppercase tracking-widest">{p.tipo}</span>
-                          <span className={`text-[10px] font-extrabold px-3 py-1 rounded-md uppercase tracking-widest ${p.status === 'ABERTO' ? 'bg-green-50 text-green-700' : 'bg-yellow-50 text-yellow-700'}`}>{p.status === 'ABERTO' ? 'EM ANÁLISE' : 'EM ANDAMENTO'}</span>
+                          <span className="text-[10px] font-extrabold text-blue-700 bg-blue-50 px-3 py-1.5 rounded-lg uppercase tracking-widest">{p.tipo || 'PESQUISA'}</span>
+                          <span className={`text-[10px] font-extrabold px-3 py-1.5 rounded-lg uppercase tracking-widest ${p.status === 'ABERTO' ? 'bg-green-50 text-green-700' : 'bg-yellow-50 text-yellow-700'}`}>{p.status === 'ABERTO' ? 'EM ANÁLISE' : 'EM ANDAMENTO'}</span>
                         </div>
-                        {user.role === 'docente' && <button className="text-gray-400 hover:text-[#1c2b36]"><FaEllipsisV/></button>}
+                        {user.role === 'docente' && <button className="text-gray-400 hover:text-[#1c2b36] transition"><FaEllipsisV/></button>}
                       </div>
                       
-                      {/* ID fictício para imitar o layout */}
                       <h3 className="font-extrabold text-4xl text-[#1c2b36] mb-3">{(p.id * 13).toString().padStart(3, '0')}</h3>
                       <p className="font-bold text-sm text-gray-800 mb-6 line-clamp-2 h-10 leading-tight">{p.titulo}</p>
                       
-                      <div className="flex flex-col gap-3 text-xs text-gray-500 mb-6 font-medium border-t border-gray-100 pt-4">
-                        <span className="flex items-center gap-3"><FaUserGraduate className="text-lg opacity-50"/> {p.docente?.nome?.split(' ')[0] || user.nome.split(' ')[0]}</span>
+                      <div className="flex flex-col gap-3 text-xs text-gray-500 mb-6 font-medium border-t border-gray-100 pt-5">
+                        <span className="flex items-center gap-3"><FaUserGraduate className="text-lg opacity-50"/> {p.docente?.nome?.split(' ')[0] || firstName}</span>
                         <span className="flex items-center gap-3"><FaBuilding className="text-lg opacity-50"/> {p.campus || 'Campus Central'}</span>
                         <span className="flex items-center gap-3"><FaClock className="text-lg opacity-50"/> {p.carga_horaria} horas/semana</span>
                       </div>
                       
                       {p.status === 'ABERTO' && (
-                        <div className="text-xs font-bold mb-6 flex items-center gap-3 p-3 rounded-xl bg-gray-50 text-gray-700 border border-gray-100">
+                        <div className="text-xs font-bold mb-6 flex items-center gap-3 p-3.5 rounded-xl bg-gray-50 text-gray-700 border border-gray-100">
                           <FaCalendarAlt className="text-gray-400 text-base" /> 
                           {expired ? 'Inscrições Encerradas' : `Encerra em ${getDaysLeft(p.prazo_inscricao)} dias`}
                         </div>
                       )}
                       
-                      <div className="mt-auto grid grid-cols-2 gap-3">
-                        <button onClick={() => setViewProj(p)} className="py-3 rounded-xl border-2 border-gray-200 text-gray-700 font-bold hover:bg-gray-50 transition text-sm">Ver Detalhes</button>
+                      <div className="mt-auto grid grid-cols-2 gap-3 pt-2">
+                        <button onClick={() => setViewProj(p)} className="py-3 rounded-2xl border-2 border-gray-200 text-gray-700 font-bold hover:bg-gray-50 hover:border-gray-300 transition text-sm">Ver Detalhes</button>
                         {user.role === 'discente' ? (
-                          <button onClick={() => apply(p.id)} className="py-3 rounded-xl bg-[#243B53] text-white font-bold hover:bg-[#1a2a3b] shadow-md transition text-sm">Quero Participar</button>
+                          <button onClick={() => apply(p.id)} className="py-3 rounded-2xl bg-[#1c2b36] text-white font-bold hover:bg-gray-900 shadow-md transition text-sm">Participar</button>
                         ) : (
-                          <button onClick={() => handleEditOrCreate(p)} className="py-3 rounded-xl bg-[#243B53] text-white font-bold hover:bg-[#1a2a3b] shadow-md transition text-sm">Editar Projeto</button>
+                          <button onClick={() => setTab('equipes')} className="py-3 rounded-2xl bg-[#1c2b36] text-white font-bold hover:bg-gray-900 shadow-md transition text-sm">Gerenciar</button>
                         )}
                       </div>
                     </div>
                   );
                 })}
+                
                 {/* Botão de Ver Mais */}
-                <div className="min-w-[320px] bg-transparent p-6 rounded-[2rem] border-2 border-dashed border-gray-300 flex flex-col justify-center items-center cursor-pointer hover:bg-gray-50 transition-colors" onClick={() => setTab('projetos')}>
-                   <div className="bg-white p-4 rounded-full shadow-sm mb-4"><FaArrowRight className="text-[#1c2b36]"/></div>
+                <div className="min-w-[320px] bg-transparent p-6 rounded-[2rem] border-2 border-dashed border-gray-300 flex flex-col justify-center items-center cursor-pointer hover:bg-gray-50 transition-colors group" onClick={() => setTab('projetos')}>
+                   <div className="bg-white p-5 rounded-full shadow-sm mb-4 group-hover:scale-110 transition-transform"><FaArrowRight className="text-[#1c2b36] text-xl"/></div>
                    <p className="font-bold text-gray-600">Ver todos os projetos</p>
                 </div>
               </div>
             )}
             
             <div className="flex justify-center mt-6">
-              <button onClick={() => setTab('projetos')} className="text-sm font-bold text-blue-600 flex items-center gap-2 hover:underline">
-                <FaInfoCircle className="text-gray-400"/> Dica: use os filtros e a busca para encontrar rapidamente seus projetos. Ir para Projetos <FaArrowRight/>
+              <button onClick={() => setTab('projetos')} className="text-sm font-bold text-blue-600 flex items-center gap-2 hover:underline bg-blue-50 px-6 py-3 rounded-full">
+                <FaInfoCircle className="text-blue-400"/> Dica: use os filtros e a busca para encontrar rapidamente seus projetos. Ir para Projetos <FaArrowRight/>
               </button>
             </div>
           </div>
@@ -741,13 +798,12 @@ function Dashboard() {
       {tab !== 'inicio' && (
         <main className="w-full px-4 md:px-12 py-32 max-w-[1400px] mx-auto min-h-screen">
           
-          {/* Navegação Interna para abas secundárias */}
           <div className="flex flex-wrap items-center gap-4 mb-10 border-b-2 border-gray-200 pb-6">
-             <h2 className="text-3xl font-extrabold text-[#1c2b36] capitalize flex-1">{tab}</h2>
-             <div className="flex gap-2">
+             <h2 className="text-3xl font-extrabold text-[#1c2b36] capitalize flex-1">{tab === 'equipes' ? 'Gerenciar Projetos' : tab}</h2>
+             <div className="flex flex-wrap gap-2">
               {['projetos', 'candidaturas', user.role === 'docente' ? 'equipes' : 'murais', 'perfil'].map(item => (
-                <button key={item} onClick={() => setTab(item)} className={`px-5 py-2 rounded-full text-sm font-bold transition-all ${tab === item ? 'bg-[#243B53] text-white shadow-md' : 'bg-white text-gray-500 hover:bg-gray-100'}`}>
-                  {item === 'equipes' ? 'Gerenciar' : item.charAt(0).toUpperCase() + item.slice(1)}
+                <button key={item} onClick={() => setTab(item)} className={`px-6 py-2.5 rounded-full text-sm font-bold transition-all border-2 ${tab === item ? 'bg-[#1c2b36] text-white border-[#1c2b36] shadow-md' : 'bg-transparent text-gray-500 border-transparent hover:bg-gray-100'}`}>
+                  {item === 'equipes' ? 'Equipes' : item.charAt(0).toUpperCase() + item.slice(1)}
                 </button>
               ))}
              </div>
@@ -773,7 +829,7 @@ function Dashboard() {
                         </select>
                       </div>
                       {user.role === 'docente' && (
-                        <button onClick={() => handleEditOrCreate(null)} className="bg-[#243B53] text-white px-8 py-3 rounded-xl font-bold shadow-md hover:bg-[#1a2a3b] transition flex items-center justify-center gap-3 whitespace-nowrap flex-1 md:flex-none h-[52px]">
+                        <button onClick={() => handleEditOrCreate(null)} className="bg-[#1c2b36] text-white px-8 py-3 rounded-xl font-bold shadow-md hover:bg-gray-900 transition flex items-center justify-center gap-3 whitespace-nowrap flex-1 md:flex-none h-[52px]">
                           <FaPlus /> <span className="hidden sm:inline">Criar Projeto</span>
                         </button>
                       )}
@@ -789,27 +845,27 @@ function Dashboard() {
                       {filteredProjects.map(p => {
                         const expired = checkExpired(p.prazo_inscricao);
                         return (
-                          <div key={p.id} className={`bg-white p-6 rounded-[2rem] shadow-sm border hover:shadow-xl transition-all duration-300 flex flex-col group h-full ${expired || p.status === 'CONCLUIDO' ? 'border-gray-100 bg-gray-50/50' : 'border-gray-200 hover:border-[#1c2b36]'}`}>
+                          <div key={p.id} className={`bg-white p-8 rounded-[2rem] shadow-sm border-2 hover:shadow-xl transition-all duration-300 flex flex-col group h-full ${expired || p.status === 'CONCLUIDO' ? 'border-gray-100 bg-gray-50/50' : 'border-gray-100 hover:border-[#1c2b36]'}`}>
                             <div className="flex justify-between items-start mb-5">
-                              <span className="text-[10px] font-extrabold text-[#1c2b36] bg-blue-50 px-3 py-1.5 rounded-lg uppercase tracking-widest">{p.tipo}</span>
+                              <span className="text-[10px] font-extrabold text-[#1c2b36] bg-blue-50 px-3 py-1.5 rounded-lg uppercase tracking-widest">{p.tipo || 'PESQUISA'}</span>
                               <StatusBadge status={p.status} expired={expired} />
                             </div>
                             <h3 className="font-extrabold text-xl text-gray-900 mb-4 group-hover:text-blue-700 transition line-clamp-2">{p.titulo}</h3>
                             <div className="flex flex-col gap-2 text-xs text-gray-600 mb-5 font-medium border-t border-gray-100 pt-4">
-                              <span className="flex items-center gap-2"><FaUserGraduate className="opacity-50"/> {p.docente?.nome?.split(' ')[0]}</span>
+                              <span className="flex items-center gap-2"><FaUserGraduate className="opacity-50"/> {p.docente?.nome?.split(' ')[0] || firstName}</span>
                               <span className="flex items-center gap-2"><FaMapMarkerAlt className="opacity-50"/> {p.campus || 'N/A'}</span>
                             </div>
                             
                             <div className="mt-auto space-y-3">
-                              <button onClick={() => setViewProj(p)} className="w-full py-3 rounded-xl border-2 border-gray-200 text-gray-700 font-bold hover:bg-gray-50 transition text-sm">Ver Detalhes</button>
+                              <button onClick={() => setViewProj(p)} className="w-full py-3 rounded-2xl border-2 border-gray-200 text-gray-700 font-bold hover:bg-gray-50 transition text-sm">Ver Detalhes</button>
                               {user.role === 'docente' && p.status !== 'CONCLUIDO' && (
                                 <div className="grid grid-cols-2 gap-2">
-                                  <button onClick={() => handleEditOrCreate(p)} className="py-2.5 rounded-xl bg-blue-50 text-blue-700 font-bold hover:bg-blue-100 transition text-xs flex items-center justify-center gap-2"><FaEdit /> Editar</button>
-                                  <button onClick={() => handleCloseProject(p.id)} className="py-2.5 rounded-xl bg-yellow-50 text-yellow-700 font-bold hover:bg-yellow-100 transition text-xs flex items-center justify-center gap-2"><FaBan /> Encerrar</button>
+                                  <button onClick={() => handleEditOrCreate(p)} className="py-2.5 rounded-2xl bg-blue-50 text-blue-700 font-bold hover:bg-blue-100 transition text-xs flex items-center justify-center gap-2"><FaEdit /> Editar</button>
+                                  <button onClick={() => handleCloseProject(p.id)} className="py-2.5 rounded-2xl bg-yellow-50 text-yellow-700 font-bold hover:bg-yellow-100 transition text-xs flex items-center justify-center gap-2"><FaBan /> Encerrar</button>
                                 </div>
                               )}
                               {user.role === 'discente' && p.status === 'ABERTO' && !myStatusInProject(p.id) && !expired && (
-                                <button onClick={() => apply(p.id)} className="w-full py-3 rounded-xl bg-[#243B53] text-white font-bold hover:bg-[#1a2a3b] shadow-md transition text-sm">Candidatar-se</button>
+                                <button onClick={() => apply(p.id)} className="w-full py-3 rounded-2xl bg-[#1c2b36] text-white font-bold hover:bg-gray-900 shadow-md transition text-sm">Candidatar-se</button>
                               )}
                             </div>
                           </div>
@@ -823,7 +879,7 @@ function Dashboard() {
               {/* ABA MURAIS */}
               {tab === 'murais' && user.role === 'discente' && (
                 <div className="space-y-8 animate-fadeIn w-full max-w-4xl mx-auto">
-                  {data.applications.filter(app => app.status === 'ACEITA').length === 0 ? (
+                  {(data.applications || []).filter(app => app.status === 'ACEITA').length === 0 ? (
                     <div className="text-center py-24 bg-white rounded-[2rem] shadow-sm border border-gray-200">
                       <div className="bg-gray-50 w-24 h-24 rounded-full flex items-center justify-center mx-auto mb-6">
                         <FaRocket className="text-4xl text-gray-400" />
@@ -832,13 +888,14 @@ function Dashboard() {
                       <p className="text-gray-500 font-medium">Você ainda não foi aprovado em nenhum projeto.</p>
                     </div>
                   ) : (
-                    data.applications.filter(app => app.status === 'ACEITA').map(app => (
+                    (data.applications || []).filter(app => app.status === 'ACEITA').map(app => (
                       <div key={app.id} className="bg-white rounded-[2rem] shadow-lg border border-gray-100 overflow-hidden">
-                        <div className="bg-[#243B53] p-8 text-white flex justify-between items-center">
-                          <div>
+                        <div className="bg-[#1c2b36] p-8 text-white flex justify-between items-center relative overflow-hidden">
+                          <div className="relative z-10">
                             <h3 className="text-2xl font-extrabold mb-2">{app.project?.titulo}</h3>
                             <p className="text-blue-200 font-medium flex items-center gap-2 text-sm"><FaUserGraduate /> Orientador: {app.project?.docente?.nome}</p>
                           </div>
+                          <FaRocket className="text-8xl opacity-10 absolute -right-4 -bottom-4 transform rotate-12" />
                         </div>
                         <div className="p-8">
                           <h4 className="font-extrabold text-gray-900 text-lg mb-6 flex items-center gap-3"><FaBullhorn className="text-blue-500" /> Comunicações da Equipe</h4>
@@ -869,16 +926,16 @@ function Dashboard() {
                     <div className="flex flex-col sm:flex-row gap-4">
                       <div className="relative flex-1">
                         <FaSearch className="absolute left-5 top-1/2 -translate-y-1/2 text-gray-400" />
-                        <input className="py-4 pl-14 pr-5 rounded-2xl border-2 border-gray-100 w-full bg-gray-50 focus:bg-white focus:border-blue-200 outline-none transition font-medium" placeholder="Nome do aluno..." value={search} onChange={e => setSearch(e.target.value)} onKeyDown={e => e.key === 'Enter' && searchStudents()} />
+                        <input className="py-4 pl-14 pr-5 rounded-2xl border-2 border-gray-100 w-full bg-gray-50 focus:bg-white focus:border-[#1c2b36] outline-none transition font-medium" placeholder="Nome do aluno..." value={search} onChange={e => setSearch(e.target.value)} onKeyDown={e => e.key === 'Enter' && searchStudents()} />
                       </div>
-                      <button onClick={searchStudents} className="bg-[#243B53] text-white px-8 py-4 rounded-2xl font-bold hover:bg-[#1a2a3b] transition">Buscar</button>
+                      <button onClick={searchStudents} className="bg-[#1c2b36] text-white px-8 py-4 rounded-2xl font-bold hover:bg-gray-900 transition shadow-md">Buscar</button>
                     </div>
                     {searchResults.length > 0 && (
                       <ul className="mt-6 border-2 border-gray-100 rounded-2xl overflow-hidden divide-y divide-gray-100">
                         {searchResults.map(u => (
                           <li key={u.id} className="flex justify-between items-center bg-white p-4 hover:bg-gray-50 cursor-pointer" onClick={() => setViewStudent(u)}>
                             <div className="flex items-center gap-4">
-                               <div className="w-10 h-10 bg-[#243B53] text-white rounded-xl flex items-center justify-center font-bold">{u.nome.charAt(0)}</div>
+                               <div className="w-10 h-10 bg-[#1c2b36] text-white rounded-xl flex items-center justify-center font-bold">{u.nome?.charAt(0)}</div>
                                <div><p className="font-bold text-gray-900">{u.nome}</p><p className="text-xs text-gray-500">{u.email}</p></div>
                             </div>
                           </li>
@@ -888,27 +945,27 @@ function Dashboard() {
                   </div>
                   
                   <div className="space-y-8">
-                    {data.projects.map(p => (
+                    {(data.projects || []).map(p => (
                       <div key={p.id} className="bg-white rounded-[2rem] shadow-lg border border-gray-100 overflow-hidden">
-                        <div className="p-8 border-b border-gray-100 bg-gray-50 flex justify-between items-center">
+                        <div className="p-8 border-b border-gray-100 bg-gray-50 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
                           <div>
-                            <span className="text-[10px] font-extrabold text-blue-700 bg-blue-100 px-3 py-1 rounded-md uppercase tracking-widest">{p.tipo}</span>
+                            <span className="text-[10px] font-extrabold text-[#1c2b36] bg-blue-50 px-3 py-1 rounded-md uppercase tracking-widest">{p.tipo || 'PESQUISA'}</span>
                             <h3 className="font-extrabold text-2xl text-gray-900 mt-3">{p.titulo}</h3>
                           </div>
                           <span className="text-sm font-bold text-gray-700 bg-white px-5 py-3 rounded-2xl border border-gray-200 shadow-sm">
-                            Vagas: {p.applications?.filter(a => a.status === 'ACEITA').length || 0} / {p.vagas_totais}
+                            Vagas: {(p.applications || []).filter(a => a.status === 'ACEITA').length || 0} / {p.vagas_totais}
                           </span>
                         </div>
                         
-                        <div className="p-8 grid md:grid-cols-2 gap-8">
+                        <div className="p-8 grid lg:grid-cols-2 gap-8">
                           <div>
                             <h4 className="text-sm font-extrabold text-gray-500 uppercase tracking-widest mb-6 border-b pb-2">Membros Aprovados</h4>
-                            <div className="space-y-4">
-                              {p.applications.filter(a => a.status === 'ACEITA').length === 0 ? <p className="text-sm text-gray-400 italic">Equipe vazia.</p> : 
-                                p.applications.filter(a => a.status === 'ACEITA').map(m => (
+                            <div className="space-y-4 max-h-[400px] overflow-y-auto pr-2 custom-scrollbar">
+                              {(p.applications || []).filter(a => a.status === 'ACEITA').length === 0 ? <p className="text-sm text-gray-400 italic">Equipe vazia.</p> : 
+                                (p.applications || []).filter(a => a.status === 'ACEITA').map(m => (
                                   <div key={m.id} className="flex items-center justify-between p-4 rounded-2xl border border-gray-100 bg-white hover:shadow-md transition">
                                     <div className="flex items-center gap-3 cursor-pointer" onClick={() => setViewStudent(m.discente)}>
-                                      <div className="w-10 h-10 bg-gray-100 text-gray-600 rounded-xl flex items-center justify-center font-extrabold">{m.discente?.nome?.charAt(0)}</div>
+                                      <div className="w-10 h-10 bg-gray-100 text-[#1c2b36] rounded-xl flex items-center justify-center font-extrabold">{m.discente?.nome?.charAt(0) || 'A'}</div>
                                       <div><p className="font-bold text-sm text-gray-900">{m.discente?.nome}</p></div>
                                     </div>
                                     <button onClick={() => manageApp(m.id, 'RECUSADA', true)} className="text-red-500 hover:bg-red-50 p-2 rounded-lg transition" title="Remover"><FaTimes/></button>
@@ -919,8 +976,17 @@ function Dashboard() {
                           
                           <div className="bg-gray-50 p-6 rounded-[2rem] border border-gray-100">
                             <h4 className="text-sm font-extrabold text-gray-500 uppercase tracking-widest mb-4">Mural do Projeto</h4>
-                            <textarea className="w-full border-2 border-gray-200 rounded-xl p-4 text-sm bg-white focus:border-blue-300 outline-none resize-none h-24 mb-4" placeholder="Enviar novo aviso..." value={postContent[p.id] || ''} onChange={(e) => setPostContent({ ...postContent, [p.id]: e.target.value })} />
-                            <button onClick={() => postToMural(p.id)} className="w-full bg-[#243B53] text-white py-3 rounded-xl font-bold hover:bg-[#1a2a3b] transition">Publicar</button>
+                            <textarea className="w-full border-2 border-gray-200 rounded-xl p-4 text-sm bg-white focus:border-[#1c2b36] outline-none resize-none h-24 mb-4" placeholder="Enviar novo aviso..." value={postContent[p.id] || ''} onChange={(e) => setPostContent({ ...postContent, [p.id]: e.target.value })} />
+                            <button onClick={() => postToMural(p.id)} className="w-full bg-[#1c2b36] text-white py-3 rounded-xl font-bold hover:bg-gray-900 transition shadow-md flex items-center justify-center gap-2"><FaPaperPlane/> Publicar</button>
+                            
+                            {p.mural_posts?.length > 0 && (
+                              <div className="mt-6 border-t border-gray-200 pt-4 space-y-3">
+                                {p.mural_posts.slice(0, 2).map(post => (
+                                   <div key={post.id} className="bg-white p-3 rounded-xl border border-gray-100 text-xs text-gray-600 line-clamp-2">{post.content}</div>
+                                ))}
+                                {p.mural_posts.length > 2 && <p className="text-xs text-center text-blue-500 font-bold cursor-pointer hover:underline" onClick={() => setViewProj(p)}>Ver todos ({p.mural_posts.length})</p>}
+                              </div>
+                            )}
                           </div>
                         </div>
                       </div>
@@ -932,24 +998,24 @@ function Dashboard() {
               {/* ABA CANDIDATURAS */}
               {tab === 'candidaturas' && (
                 <div className="max-w-6xl mx-auto bg-white rounded-[2rem] shadow-lg border border-gray-100 overflow-hidden">
-                  <div className="bg-[#243B53] p-8 text-white">
-                      <h3 className="text-2xl font-extrabold">Minhas Candidaturas</h3>
+                  <div className="bg-[#1c2b36] p-8 text-white">
+                      <h3 className="text-2xl font-extrabold">{user.role === 'discente' ? 'Minhas Candidaturas' : 'Gerenciar Candidaturas'}</h3>
                   </div>
                   <div className="divide-y divide-gray-100 p-4">
-                      {data.applications.length === 0 ? <p className="text-center py-12 text-gray-400 font-bold">Nenhum registro.</p> : 
-                        data.applications.map(app => (
+                      {(data.applications || []).length === 0 ? <p className="text-center py-12 text-gray-400 font-bold">Nenhum registro encontrado.</p> : 
+                        (data.applications || []).map(app => (
                           <div key={app.id} className="p-6 hover:bg-gray-50 transition flex flex-col md:flex-row justify-between items-center gap-4 rounded-xl">
-                              <div className="flex-1">
+                              <div className="flex-1 w-full">
                                   <p className="font-extrabold text-gray-900 text-lg">{app.project?.titulo}</p>
-                                  {user.role === 'docente' && <p className="text-sm text-blue-600 font-bold cursor-pointer mt-1" onClick={() => setViewStudent(app.discente)}>Candidato: {app.discente?.nome}</p>}
-                                  <p className="text-sm text-gray-500 mt-2">"{app.mensagem}"</p>
+                                  {user.role === 'docente' && <p className="text-sm text-blue-600 font-bold cursor-pointer mt-1 flex items-center gap-2" onClick={() => setViewStudent(app.discente)}><FaUserCircle/> Candidato: {app.discente?.nome}</p>}
+                                  <p className="text-sm text-gray-500 mt-3 bg-gray-100 p-3 rounded-xl border border-gray-200 italic">"{app.mensagem}"</p>
                               </div>
-                              <div className="flex flex-col items-end gap-3">
+                              <div className="flex flex-col items-end gap-3 w-full md:w-auto mt-4 md:mt-0">
                                   <StatusBadge status={app.status} />
                                   {user.role === 'docente' && app.status === 'PENDENTE' && (
-                                      <div className="flex gap-2">
-                                          <button onClick={()=>manageApp(app.id, 'ACEITA')} className="bg-green-600 text-white px-4 py-2 rounded-lg text-xs font-bold hover:bg-green-700">Aprovar</button>
-                                          <button onClick={()=>manageApp(app.id, 'RECUSADA')} className="border border-red-200 text-red-600 px-4 py-2 rounded-lg text-xs font-bold hover:bg-red-50">Recusar</button>
+                                      <div className="flex gap-2 w-full">
+                                          <button onClick={()=>manageApp(app.id, 'ACEITA')} className="flex-1 bg-green-600 text-white px-6 py-2.5 rounded-xl text-sm font-bold hover:bg-green-700 shadow-md">Aprovar</button>
+                                          <button onClick={()=>manageApp(app.id, 'RECUSADA')} className="flex-1 border-2 border-red-200 text-red-600 px-6 py-2.5 rounded-xl text-sm font-bold hover:bg-red-50">Recusar</button>
                                       </div>
                                   )}
                               </div>
@@ -962,29 +1028,34 @@ function Dashboard() {
               {/* ABA PERFIL */}
               {tab === 'perfil' && user.role === 'discente' && (
                 <form onSubmit={saveProfile} className="bg-white p-8 md:p-12 rounded-[2rem] shadow-lg border border-gray-100 max-w-4xl mx-auto">
-                  <h3 className="font-extrabold text-3xl mb-8 text-gray-900">Meu Perfil</h3>
+                  <h3 className="font-extrabold text-3xl mb-8 text-gray-900 border-b border-gray-100 pb-4">Meu Perfil</h3>
                   <div className="grid md:grid-cols-2 gap-8 mb-8">
-                    <div><label className="block text-sm font-bold text-gray-900 mb-2">Curso</label><input name="curso" defaultValue={data.profile.curso} className="w-full border-2 border-gray-200 p-4 rounded-xl bg-gray-50 outline-none" /></div>
-                    <div><label className="block text-sm font-bold text-gray-900 mb-2">Campus</label><input name="campus" defaultValue={data.profile.campus} className="w-full border-2 border-gray-200 p-4 rounded-xl bg-gray-50 outline-none" /></div>
+                    <div><label className="block text-sm font-bold text-[#1c2b36] mb-2">Curso</label><input name="curso" defaultValue={data.profile?.curso} className="w-full border-2 border-gray-200 p-4 rounded-xl bg-gray-50 focus:border-[#1c2b36] outline-none transition font-medium" /></div>
+                    <div><label className="block text-sm font-bold text-[#1c2b36] mb-2">Campus</label><input name="campus" defaultValue={data.profile?.campus} className="w-full border-2 border-gray-200 p-4 rounded-xl bg-gray-50 focus:border-[#1c2b36] outline-none transition font-medium" /></div>
                     <div>
-                      <label className="block text-sm font-bold text-gray-900 mb-2">Período</label>
-                      <select name="periodo" defaultValue={data.profile.periodo} className="w-full border-2 border-gray-200 p-4 rounded-xl bg-gray-50 outline-none font-bold">
+                      <label className="block text-sm font-bold text-[#1c2b36] mb-2">Período</label>
+                      <select name="periodo" defaultValue={data.profile?.periodo} className="w-full border-2 border-gray-200 p-4 rounded-xl bg-gray-50 focus:border-[#1c2b36] outline-none font-bold text-gray-700 cursor-pointer">
                         <option value="">Selecione...</option>
                         {[...Array(10)].map((_, i) => <option key={i} value={`${i+1}º`}>{i+1}º Período</option>)}
                         <option value="Finalista">Finalista</option>
                       </select>
                     </div>
-                    <div><label className="block text-sm font-bold text-gray-900 mb-2">Telefone</label><input name="telefone" defaultValue={data.profile.telefone} className="w-full border-2 border-gray-200 p-4 rounded-xl bg-gray-50 outline-none" /></div>
+                    <div><label className="block text-sm font-bold text-[#1c2b36] mb-2">WhatsApp</label><input name="telefone" defaultValue={data.profile?.telefone} className="w-full border-2 border-gray-200 p-4 rounded-xl bg-gray-50 focus:border-[#1c2b36] outline-none transition font-medium" placeholder="(00) 00000-0000" /></div>
                   </div>
-                  <div className="mb-10 bg-gray-50 p-6 rounded-2xl border border-gray-100">
-                    <label className="block text-sm font-extrabold text-gray-900 mb-3">Habilidades</label>
-                    <div className="flex gap-3 mb-4">
-                      <input value={skillInput} onChange={e => setSkillInput(e.target.value)} className="w-full border-2 border-gray-200 p-3 rounded-xl outline-none" placeholder="Ex: Python..." onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); addSkill(e); } }}/>
-                      <button type="button" onClick={addSkill} className="bg-[#243B53] text-white px-6 py-3 rounded-xl font-bold">Adicionar</button>
+                  <div className="mb-10 bg-gray-50 p-8 rounded-[2rem] border border-gray-100">
+                    <label className="block text-sm font-extrabold text-[#1c2b36] mb-3">Minhas Habilidades</label>
+                    <p className="text-sm text-gray-500 mb-4 font-medium">Adicione ferramentas e linguagens para destacar seu perfil para os professores.</p>
+                    <div className="flex flex-col sm:flex-row gap-3 mb-6">
+                      <input value={skillInput} onChange={e => setSkillInput(e.target.value)} className="w-full border-2 border-gray-200 p-4 rounded-xl outline-none focus:border-[#1c2b36] transition" placeholder="Ex: Python, Figma..." onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); addSkill(e); } }}/>
+                      <button type="button" onClick={addSkill} className="bg-[#1c2b36] text-white px-8 py-4 rounded-xl font-bold hover:bg-gray-900 shadow-md">Adicionar</button>
                     </div>
-                    <div className="flex flex-wrap gap-2">{skillsList.map((skill, index) => (<span key={index} className="bg-white border border-gray-200 px-4 py-2 rounded-lg text-sm font-bold flex gap-2">{skill} <button type="button" onClick={() => removeSkill(index)} className="text-red-400"><FaTimes/></button></span>))}</div>
+                    <div className="flex flex-wrap gap-2">
+                      {skillsList.map((skill, index) => (<span key={index} className="bg-[#1c2b36] text-white px-4 py-2 rounded-xl text-sm font-bold flex items-center gap-2">{skill} <button type="button" onClick={() => removeSkill(index)} className="text-gray-300 hover:text-red-400 transition"><FaTimes/></button></span>))}
+                    </div>
                   </div>
-                  <button type="submit" disabled={isSubmitting} className="bg-green-600 text-white w-full py-4 rounded-2xl font-bold text-lg shadow-lg hover:bg-green-700">Salvar Perfil</button>
+                  <button type="submit" disabled={isSubmitting} className="bg-green-600 text-white w-full py-4 rounded-2xl font-bold text-lg shadow-lg hover:bg-green-700 transition flex justify-center items-center gap-2">
+                    {isSubmitting ? <><FaSpinner className="animate-spin" /> Salvando...</> : 'Salvar Perfil'}
+                  </button>
                 </form>
               )}
             </>
@@ -1003,11 +1074,11 @@ function Dashboard() {
                 
                 <div className="space-y-6">
                   <div>
-                    <label className="block text-sm font-bold text-gray-900 mb-2">Título do Projeto</label>
+                    <label className="block text-sm font-bold text-[#1c2b36] mb-2">Título do Projeto</label>
                     <input name="titulo" defaultValue={projectModalData.titulo} required className="w-full border-2 border-gray-200 p-4 rounded-2xl bg-gray-50 focus:bg-white focus:border-[#1c2b36] outline-none transition font-medium text-lg" />
                   </div>
                   <div>
-                    <label className="block text-sm font-bold text-gray-900 mb-2">Descrição Detalhada</label>
+                    <label className="block text-sm font-bold text-[#1c2b36] mb-2">Descrição Detalhada</label>
                     <textarea name="descricao" defaultValue={projectModalData.descricao} required className="w-full border-2 border-gray-200 p-4 rounded-2xl bg-gray-50 focus:bg-white focus:border-[#1c2b36] outline-none transition h-32 resize-none font-medium" />
                   </div>
                   
@@ -1015,7 +1086,7 @@ function Dashboard() {
                     <div className="bg-gray-50 p-6 rounded-[2rem] border-2 border-gray-100">
                       <label className="block text-sm font-extrabold text-gray-900 mb-3"><FaListUl className="inline mr-2 text-blue-500"/> Objetivos</label>
                       <div className="flex gap-2 mb-4">
-                        <input value={objInput} onChange={e => setObjInput(e.target.value)} className="w-full border-2 border-gray-200 p-3 rounded-xl outline-none" onKeyDown={e => { if(e.key === 'Enter'){ e.preventDefault(); addObj(e); } }}/>
+                        <input value={objInput} onChange={e => setObjInput(e.target.value)} className="w-full border-2 border-gray-200 p-3 rounded-xl outline-none focus:border-[#1c2b36]" onKeyDown={e => { if(e.key === 'Enter'){ e.preventDefault(); addObj(e); } }}/>
                         <button type="button" onClick={addObj} className="bg-[#1c2b36] text-white px-4 rounded-xl font-bold"><FaPlus/></button>
                       </div>
                       <ul className="space-y-2">{objList.map((x,i) => <li key={i} className="flex justify-between items-center bg-white border border-gray-200 p-3 rounded-xl text-sm font-medium">{x} <button type="button" onClick={()=>removeObj(i)} className="text-red-400"><FaTimes/></button></li>)}</ul>
@@ -1023,7 +1094,7 @@ function Dashboard() {
                     <div className="bg-gray-50 p-6 rounded-[2rem] border-2 border-gray-100">
                       <label className="block text-sm font-extrabold text-gray-900 mb-3"><FaCheck className="inline mr-2 text-green-500"/> Pré-Requisitos</label>
                       <div className="flex gap-2 mb-4">
-                        <input value={reqInput} onChange={e => setReqInput(e.target.value)} className="w-full border-2 border-gray-200 p-3 rounded-xl outline-none" onKeyDown={e => { if(e.key === 'Enter'){ e.preventDefault(); addReq(e); } }}/>
+                        <input value={reqInput} onChange={e => setReqInput(e.target.value)} className="w-full border-2 border-gray-200 p-3 rounded-xl outline-none focus:border-[#1c2b36]" onKeyDown={e => { if(e.key === 'Enter'){ e.preventDefault(); addReq(e); } }}/>
                         <button type="button" onClick={addReq} className="bg-[#1c2b36] text-white px-4 rounded-xl font-bold"><FaPlus/></button>
                       </div>
                       <ul className="space-y-2">{reqList.map((x,i) => <li key={i} className="flex justify-between items-center bg-white border border-gray-200 p-3 rounded-xl text-sm font-medium">{x} <button type="button" onClick={()=>removeReq(i)} className="text-red-400"><FaTimes/></button></li>)}</ul>
@@ -1032,27 +1103,27 @@ function Dashboard() {
 
                   <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
                     <div className="col-span-2 md:col-span-1">
-                      <label className="block text-sm font-bold text-gray-900 mb-2">Tipo</label>
-                      <select name="tipo" defaultValue={projectModalData.tipo || 'PESQUISA'} className="w-full border-2 border-gray-200 p-4 rounded-2xl bg-gray-50 font-bold outline-none">
+                      <label className="block text-sm font-bold text-[#1c2b36] mb-2">Tipo</label>
+                      <select name="tipo" defaultValue={projectModalData.tipo || 'PESQUISA'} className="w-full border-2 border-gray-200 p-4 rounded-2xl bg-gray-50 font-bold outline-none cursor-pointer focus:border-[#1c2b36]">
                         <option value="PESQUISA">Pesquisa</option><option value="EXTENSAO">Extensão</option><option value="VOLUNTARIO">Voluntário</option>
                       </select>
                     </div>
                     <div className="col-span-2 md:col-span-1">
-                      <label className="block text-sm font-bold text-gray-900 mb-2">Campus</label>
-                      <input name="campus" defaultValue={projectModalData.campus} required className="w-full border-2 border-gray-200 p-4 rounded-2xl bg-gray-50 outline-none" />
+                      <label className="block text-sm font-bold text-[#1c2b36] mb-2">Campus</label>
+                      <input name="campus" defaultValue={projectModalData.campus} required className="w-full border-2 border-gray-200 p-4 rounded-2xl bg-gray-50 outline-none focus:border-[#1c2b36]" />
                     </div>
                     <div className="col-span-1">
-                      <label className="block text-sm font-bold text-gray-900 mb-2">Horas</label>
-                      <input name="carga_horaria" type="number" defaultValue={projectModalData.carga_horaria} required className="w-full border-2 border-gray-200 p-4 rounded-2xl bg-gray-50 outline-none text-center" />
+                      <label className="block text-sm font-bold text-[#1c2b36] mb-2">Horas</label>
+                      <input name="carga_horaria" type="number" defaultValue={projectModalData.carga_horaria} required className="w-full border-2 border-gray-200 p-4 rounded-2xl bg-gray-50 outline-none text-center focus:border-[#1c2b36]" />
                     </div>
                     <div className="col-span-1">
-                      <label className="block text-sm font-bold text-gray-900 mb-2">Vagas</label>
-                      <input name="vagas_totais" type="number" min="1" defaultValue={projectModalData.vagas_totais} required className="w-full border-2 border-gray-200 p-4 rounded-2xl bg-gray-50 outline-none text-center" />
+                      <label className="block text-sm font-bold text-[#1c2b36] mb-2">Vagas</label>
+                      <input name="vagas_totais" type="number" min="1" defaultValue={projectModalData.vagas_totais} required className="w-full border-2 border-gray-200 p-4 rounded-2xl bg-gray-50 outline-none text-center focus:border-[#1c2b36]" />
                     </div>
                   </div>
                   <div>
-                    <label className="block text-sm font-bold text-gray-900 mb-2">Data Limite de Inscrição</label>
-                    <input name="prazo_inscricao" type="date" defaultValue={projectModalData.prazo_inscricao?.split('T')[0]} required className="w-full border-2 border-gray-200 p-4 rounded-2xl bg-gray-50 font-bold outline-none cursor-pointer" />
+                    <label className="block text-sm font-bold text-[#1c2b36] mb-2">Data Limite de Inscrição</label>
+                    <input name="prazo_inscricao" type="date" defaultValue={projectModalData.prazo_inscricao?.split('T')[0]} required className="w-full border-2 border-gray-200 p-4 rounded-2xl bg-gray-50 font-bold outline-none cursor-pointer focus:border-[#1c2b36]" />
                   </div>
                 </div>
                 
@@ -1070,36 +1141,36 @@ function Dashboard() {
           {viewProj && (
             <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex justify-center items-center z-[100] p-4 transition-opacity">
               <div className="bg-white p-8 md:p-10 rounded-[2.5rem] shadow-2xl w-full max-w-4xl max-h-[90vh] overflow-y-auto relative animate-slideIn custom-scrollbar">
-                <button onClick={() => setViewProj(null)} className="absolute top-6 right-6 text-gray-400 hover:text-gray-800 transition bg-gray-100 p-3 rounded-2xl"><FaTimes size={20} /></button>
+                <button onClick={() => setViewProj(null)} className="absolute top-6 right-6 text-gray-400 hover:text-[#1c2b36] transition bg-gray-100 p-3 rounded-2xl"><FaTimes size={20} /></button>
                 
                 <div className="mb-8 border-b-2 border-gray-100 pb-6 pr-12">
                   <div className="mb-3 flex items-center gap-3">
-                    <span className="bg-[#1c2b36] text-white px-4 py-1.5 rounded-lg text-xs font-extrabold uppercase tracking-widest">{viewProj.tipo}</span>
+                    <span className="bg-[#1c2b36] text-white px-4 py-1.5 rounded-lg text-xs font-extrabold uppercase tracking-widest">{viewProj.tipo || 'PESQUISA'}</span>
                     <StatusBadge status={viewProj.status} expired={checkExpired(viewProj.prazo_inscricao)} />
                   </div>
-                  <h2 className="text-4xl font-extrabold text-gray-900 tracking-tight">{viewProj.titulo}</h2>
-                  <p className="text-base text-gray-600 mt-3 flex items-center gap-2 font-medium"><FaUserGraduate className="text-blue-500 text-lg"/> Orientador: <span className="font-bold text-gray-900">{viewProj.docente?.nome}</span></p>
+                  <h2 className="text-4xl font-extrabold text-[#1c2b36] tracking-tight">{viewProj.titulo}</h2>
+                  <p className="text-base text-gray-600 mt-3 flex items-center gap-2 font-medium"><FaUserGraduate className="text-blue-500 text-lg"/> Orientador: <span className="font-bold text-[#1c2b36]">{viewProj.docente?.nome}</span></p>
                 </div>
                 
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
-                  <div className="bg-gray-50 border-2 border-gray-100 p-5 rounded-2xl text-center"><p className="text-xs text-gray-500 font-extrabold uppercase tracking-widest mb-1">Campus</p><p className="font-extrabold text-xl text-gray-900">{viewProj.campus || '-'}</p></div>
-                  <div className="bg-gray-50 border-2 border-gray-100 p-5 rounded-2xl text-center"><p className="text-xs text-gray-500 font-extrabold uppercase tracking-widest mb-1">Carga Horária</p><p className="font-extrabold text-xl text-gray-900">{viewProj.carga_horaria}h</p></div>
+                  <div className="bg-gray-50 border-2 border-gray-100 p-5 rounded-2xl text-center"><p className="text-xs text-gray-500 font-extrabold uppercase tracking-widest mb-1">Campus</p><p className="font-extrabold text-xl text-[#1c2b36]">{viewProj.campus || '-'}</p></div>
+                  <div className="bg-gray-50 border-2 border-gray-100 p-5 rounded-2xl text-center"><p className="text-xs text-gray-500 font-extrabold uppercase tracking-widest mb-1">Carga Horária</p><p className="font-extrabold text-xl text-[#1c2b36]">{viewProj.carga_horaria}h</p></div>
                   <div className="bg-blue-50 border-2 border-blue-100 p-5 rounded-2xl text-center"><p className="text-xs text-blue-600 font-extrabold uppercase tracking-widest mb-1">Vagas Livres</p><p className="font-extrabold text-xl text-blue-900">{Math.max(0, viewProj.vagas_totais - viewProj.vagas_ocupadas)}</p></div>
-                  <div className="bg-gray-50 border-2 border-gray-100 p-5 rounded-2xl text-center"><p className="text-xs text-gray-500 font-extrabold uppercase tracking-widest mb-1">Ocupação</p><p className="font-extrabold text-xl text-gray-900">{viewProj.vagas_ocupadas}/{viewProj.vagas_totais}</p></div>
+                  <div className="bg-gray-50 border-2 border-gray-100 p-5 rounded-2xl text-center"><p className="text-xs text-gray-500 font-extrabold uppercase tracking-widest mb-1">Ocupação</p><p className="font-extrabold text-xl text-[#1c2b36]">{viewProj.vagas_ocupadas}/{viewProj.vagas_totais}</p></div>
                 </div>
                 
                 <div className="space-y-8 text-gray-800">
                   <div className="bg-white border-2 border-gray-100 p-6 rounded-[2rem]">
-                    <h3 className="font-extrabold text-xl text-gray-900 mb-4 flex items-center gap-3"><FaFileAlt className="text-[#1c2b36]"/> Resumo do Projeto</h3>
+                    <h3 className="font-extrabold text-xl text-[#1c2b36] mb-4 flex items-center gap-3"><div className="bg-[#1c2b36] p-2 rounded-xl text-white"><FaFileAlt size={16}/></div> Resumo do Projeto</h3>
                     <p className="leading-relaxed text-base font-medium text-gray-600">{viewProj.descricao}</p>
                   </div>
                   <div className="grid md:grid-cols-2 gap-8">
                       <div className="bg-white border-2 border-gray-100 p-6 rounded-[2rem]">
-                        <h3 className="font-extrabold text-lg text-gray-900 mb-4 flex items-center gap-2"><FaListUl className="text-blue-500"/> Objetivos Mapeados</h3>
+                        <h3 className="font-extrabold text-lg text-[#1c2b36] mb-4 flex items-center gap-2"><FaListUl className="text-blue-500"/> Objetivos Mapeados</h3>
                         {renderList(viewProj.objetivos)}
                       </div>
                       <div className="bg-white border-2 border-gray-100 p-6 rounded-[2rem]">
-                        <h3 className="font-extrabold text-lg text-gray-900 mb-4 flex items-center gap-2"><FaCheck className="text-green-500"/> Requisitos Exigidos</h3>
+                        <h3 className="font-extrabold text-lg text-[#1c2b36] mb-4 flex items-center gap-2"><FaCheck className="text-green-500"/> Requisitos Exigidos</h3>
                         {renderList(viewProj.requisitos)}
                       </div>
                   </div>
@@ -1115,7 +1186,7 @@ function Dashboard() {
                   </div>
 
                   {user.role === 'discente' && !myStatusInProject(viewProj.id) && viewProj.status === 'ABERTO' && !checkExpired(viewProj.prazo_inscricao) && (
-                    <button onClick={() => { apply(viewProj.id); setViewProj(null); }} className="bg-[#243B53] text-white px-12 py-5 rounded-2xl font-bold hover:bg-[#1a2a3b] shadow-xl transition w-full md:w-auto text-lg flex items-center justify-center gap-3">
+                    <button onClick={() => { apply(viewProj.id); setViewProj(null); }} className="bg-[#1c2b36] text-white px-12 py-5 rounded-2xl font-bold hover:bg-gray-900 shadow-xl transition w-full md:w-auto text-lg flex items-center justify-center gap-3 hover:-translate-y-1">
                       Quero me Candidatar <FaRocket/>
                     </button>
                   )}
@@ -1131,8 +1202,8 @@ function Dashboard() {
                 <button onClick={() => setViewStudent(null)} className="absolute top-6 right-6 text-gray-400 hover:text-gray-800 transition bg-gray-100 p-2 rounded-xl"><FaTimes size={18} /></button>
                 
                 <div className="text-center mb-8 pt-6">
-                  <div className="w-28 h-28 bg-[#243B53] text-white rounded-3xl flex items-center justify-center text-5xl font-extrabold mx-auto mb-6 shadow-xl transform rotate-3">
-                    <div className="-rotate-3">{viewStudent.nome.charAt(0).toUpperCase()}</div>
+                  <div className="w-28 h-28 bg-[#1c2b36] text-white rounded-3xl flex items-center justify-center text-5xl font-extrabold mx-auto mb-6 shadow-xl transform rotate-3">
+                    <div className="-rotate-3">{viewStudent.nome?.charAt(0).toUpperCase() || 'A'}</div>
                   </div>
                   <h2 className="text-2xl font-extrabold text-gray-900">{viewStudent.nome}</h2>
                   <p className="text-sm font-bold text-blue-600 mt-1">{viewStudent.email}</p>
@@ -1142,11 +1213,11 @@ function Dashboard() {
                   <div className="bg-gray-50 p-6 rounded-2xl border-2 border-gray-100 text-sm space-y-4">
                     <div className="flex justify-between items-center border-b border-gray-200 pb-3">
                       <span className="font-extrabold text-gray-400 uppercase tracking-widest">Curso</span> 
-                      <span className="font-bold text-gray-900">{viewStudent.profile?.curso || 'Não informado'}</span>
+                      <span className="font-bold text-[#1c2b36]">{viewStudent.profile?.curso || 'Não informado'}</span>
                     </div>
                     <div className="flex justify-between items-center">
                       <span className="font-extrabold text-gray-400 uppercase tracking-widest">Período</span> 
-                      <span className="font-bold text-gray-900">{viewStudent.profile?.periodo || 'Não informado'}</span>
+                      <span className="font-bold text-[#1c2b36]">{viewStudent.profile?.periodo || 'Não informado'}</span>
                     </div>
                   </div>
 
@@ -1167,7 +1238,7 @@ function Dashboard() {
             </div>
           )}
 
-          {/* MODAL DE SUCESSO */}
+          {/* MODAL DE SUCESSO (Mensagem Rápida) */}
           {showSuccessModal && (
             <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex justify-center items-center z-[110] p-4 transition-opacity">
               <div className="bg-white p-10 rounded-[2.5rem] shadow-2xl w-full max-w-sm text-center relative animate-slideIn">
@@ -1176,12 +1247,13 @@ function Dashboard() {
                 </div>
                 <h3 className="font-extrabold text-2xl text-gray-900 mb-3">Tudo Certo!</h3>
                 <p className="text-gray-600 mb-8 font-medium">A operação foi salva com sucesso no sistema.</p>
-                <button onClick={() => setShowSuccessModal(false)} className="bg-[#243B53] text-white w-full py-4 rounded-2xl font-bold text-lg hover:bg-[#1a2a3b] transition shadow-lg">
+                <button onClick={() => setShowSuccessModal(false)} className="bg-[#1c2b36] text-white w-full py-4 rounded-2xl font-bold text-lg hover:bg-gray-900 transition shadow-lg">
                   Continuar
                 </button>
               </div>
             </div>
           )}
+
         </main>
       )}
     </div>
