@@ -6,29 +6,21 @@ import bcrypt from 'bcryptjs';
 import { Op } from 'sequelize';
 import { sequelize } from './database.js';
 import { User, Project, Application, Profile, AuditLog, MuralPost } from './models.js';
-import { ensureDatabaseQualityObjects } from './databaseQuality.js';
 
 dotenv.config();
 
 const app = express();
 
-// --- CONFIGURAÇÃO DE CORS ---
-// Permite configurar origens por variável de ambiente e mantém suporte aos domínios locais.
-// Use CORS_ORIGIN=* em ambiente de teste ou informe URLs separadas por vírgula em produção.
-const configuredOrigins = process.env.CORS_ORIGIN
-  ? process.env.CORS_ORIGIN.split(',').map((origin) => origin.trim())
-  : ['http://localhost:3000', 'http://localhost:5173'];
-
+// --- CONFIGURAÇÃO DE CORS LIMPA E SEGURA ---
 app.use(cors({
-  origin: (origin, callback) => {
-    if (!origin || configuredOrigins.includes('*') || configuredOrigins.includes(origin)) {
-      return callback(null, true);
-    }
-
-    return callback(new Error(`Origem não permitida pelo CORS: ${origin}`));
-  },
+  origin: [
+    'https://conecta-pesquisa.vercel.app', // Seu frontend em produção
+    'http://localhost:3000',               // Localhost React padrão
+    'http://localhost:5173'                // Localhost Vite padrão
+  ],
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization', 'Origin', 'X-Requested-With', 'Accept']
+  allowedHeaders: ['Content-Type', 'Authorization', 'Origin', 'X-Requested-With', 'Accept'],
+  credentials: true
 }));
 
 app.use(express.json());
@@ -554,27 +546,15 @@ app.get('/api/users/search', auth(['docente']), async (req, res) => {
 
 const PORT = process.env.PORT || 3000;
 
-// Inicialização do servidor com sincronização do banco e criação dos objetos de qualidade.
 sequelize
   .sync()
-  .then(async () => {
-    await ensureDatabaseQualityObjects();
-
+  .then(() => {
     app.listen(PORT, () => {
       console.log(`Backend running on port ${PORT}`);
-      console.log('Servidor rodando com CORS, índices, views e procedures configurados.');
+      console.log('Servidor rodando com CORS configurado corretamente!');
     });
   })
   .catch((error) => {
     console.error('Erro ao conectar/sincronizar com o banco:', error);
     process.exit(1);
   });
-
-process.on('unhandledRejection', (reason) => {
-  console.error('Falha assíncrona não tratada:', reason);
-});
-
-process.on('uncaughtException', (error) => {
-  console.error('Exceção não tratada:', error);
-  process.exit(1);
-});
