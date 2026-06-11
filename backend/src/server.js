@@ -7,25 +7,48 @@ import { Op } from 'sequelize';
 import { sequelize } from './database.js';
 import { User, Project, Application, Profile, AuditLog, MuralPost } from './models.js';
 
+/*
+  Carrega as variáveis de ambiente do arquivo .env.
+  Essas variáveis são usadas para conexão com banco, JWT, porta do servidor etc.
+*/
 dotenv.config();
 
+/*
+  Cria a aplicação Express.
+  A variável app concentra as configurações, middlewares e rotas da API.
+*/
 const app = express();
 
-// --- CONFIGURAÇÃO DE CORS LIMPA E SEGURA ---
+/*
+  Configuração de CORS.
+
+  O CORS define quais frontends podem acessar este backend.
+  Aqui são liberadas:
+  - A URL de produção da Vercel;
+  - URLs locais usadas durante desenvolvimento.
+*/
 app.use(cors({
   origin: [
-    'https://conecta-pesquisa.vercel.app', // Seu frontend em produção
-    'http://localhost:3000',               // Localhost React padrão
-    'http://localhost:5173'                // Localhost Vite padrão
+    'https://conecta-pesquisa.vercel.app',
+    'http://localhost:3000',
+    'http://localhost:5173'
   ],
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization', 'Origin', 'X-Requested-With', 'Accept'],
   credentials: true
 }));
 
+/*
+  Middleware para permitir que o backend leia JSON enviado pelo frontend.
+  Sem isso, req.body viria vazio nas requisições POST e PUT.
+*/
 app.use(express.json());
 
 // --- ROTAS DE TESTE DE SAÚDE ---
+
+/*
+  Rota raiz usada para verificar se o backend está online.
+*/
 app.get('/', (req, res) => {
   res.json({
     status: 'ok',
@@ -33,6 +56,10 @@ app.get('/', (req, res) => {
   });
 });
 
+/*
+  Rota de health check da API.
+  Pode ser usada no Render ou manualmente para testar se a API está funcionando.
+*/
 app.get('/api/health', (req, res) => {
   res.json({
     status: 'ok',
@@ -41,6 +68,11 @@ app.get('/api/health', (req, res) => {
 });
 
 // --- LOGS ---
+
+/*
+  Registra ações importantes dos usuários na tabela de auditoria.
+  Essa função ajuda a rastrear login, cadastro, criação, edição e exclusão de projetos.
+*/
 const logAction = async (userId, action, details) => {
   try {
     await AuditLog.create({
@@ -54,6 +86,18 @@ const logAction = async (userId, action, details) => {
 };
 
 // --- AUTH MIDDLEWARE ---
+
+/*
+  Middleware de autenticação e autorização.
+
+  Ele verifica:
+  1. Se o usuário enviou token JWT;
+  2. Se o token é válido;
+  3. Se o usuário possui a permissão exigida pela rota.
+
+  O parâmetro roles permite restringir uma rota a tipos específicos de usuário,
+  como docente, discente ou admin.
+*/
 const auth = (roles = []) => (req, res, next) => {
   const token = req.headers['authorization']?.split(' ')[1];
 
@@ -76,7 +120,16 @@ const auth = (roles = []) => (req, res, next) => {
   });
 };
 
-// Normaliza o tipo de usuário caso o frontend envie nomes diferentes
+/*
+  Normaliza o tipo de usuário recebido do frontend.
+
+  Isso evita erro caso o frontend envie textos diferentes, como:
+  - "Sou Aluno"
+  - "aluno"
+  - "discente"
+
+  Todos são convertidos para o valor padrão usado no banco.
+*/
 const normalizeRole = (role) => {
   const value = String(role || '').toLowerCase().trim();
 
@@ -94,6 +147,13 @@ const normalizeRole = (role) => {
 };
 
 // --- ROTAS DE AUTENTICAÇÃO ---
+
+/*
+  Rota de login.
+
+  Recebe email e senha, verifica se o usuário existe,
+  compara a senha criptografada e retorna um token JWT.
+*/
 app.post('/api/auth/login', async (req, res) => {
   try {
     const { email, password } = req.body;
@@ -130,6 +190,13 @@ app.post('/api/auth/login', async (req, res) => {
   }
 });
 
+/*
+  Rota de cadastro.
+
+  Cria um novo usuário no sistema.
+  Antes de salvar, valida os campos obrigatórios, verifica se o e-mail já existe
+  e criptografa a senha.
+*/
 app.post('/api/auth/register', async (req, res) => {
   try {
     const { nome, email, password } = req.body;
@@ -164,6 +231,10 @@ app.post('/api/auth/register', async (req, res) => {
       password_hash: hash
     });
 
+    /*
+      Quando o usuário é discente, cria automaticamente um perfil acadêmico.
+      Esse perfil pode armazenar dados complementares do aluno.
+    */
     if (role === 'discente') {
       await Profile.create({ user_id: user.id });
     }
@@ -190,6 +261,11 @@ app.post('/api/auth/register', async (req, res) => {
 });
 
 // --- PERFIL ---
+
+/*
+  Busca o perfil do usuário autenticado.
+  Caso ainda não exista perfil, retorna um objeto vazio.
+*/
 app.get('/api/profile', auth(), async (req, res) => {
   try {
     const p = await Profile.findOne({ where: { user_id: req.userId } });
@@ -200,6 +276,10 @@ app.get('/api/profile', auth(), async (req, res) => {
   }
 });
 
+/*
+  Atualiza o perfil do discente autenticado.
+  Apenas usuários do tipo discente podem alterar perfil acadêmico.
+*/
 app.put('/api/profile', auth(['discente']), async (req, res) => {
   try {
     let p = await Profile.findOne({ where: { user_id: req.userId } });
@@ -219,6 +299,16 @@ app.put('/api/profile', auth(['discente']), async (req, res) => {
 });
 
 // --- PROJETOS ---
+
+/*
+  Lista projetos.
+
+  Para docente:
+  - Retorna apenas os projetos criados por ele.
+
+  Para discente:
+  - Retorna apenas projetos com status ABERTO.
+*/
 app.get('/api/projects', auth(), async (req, res) => {
   try {
     const where =
@@ -262,6 +352,10 @@ app.get('/api/projects', auth(), async (req, res) => {
   }
 });
 
+/*
+  Cria um novo projeto acadêmico.
+  Apenas docentes podem criar projetos.
+*/
 app.post('/api/projects', auth(['docente']), async (req, res) => {
   const { titulo, tipo, prazo_inscricao } = req.body;
 
@@ -288,7 +382,13 @@ app.post('/api/projects', auth(['docente']), async (req, res) => {
   }
 });
 
-// --- ROTA DE EDIÇÃO ---
+/*
+  Edita um projeto existente.
+
+  A edição só é permitida se:
+  - O projeto existir;
+  - O usuário autenticado for o docente dono do projeto.
+*/
 app.put('/api/projects/:id', auth(['docente']), async (req, res) => {
   try {
     const p = await Project.findByPk(req.params.id);
@@ -311,7 +411,11 @@ app.put('/api/projects/:id', auth(['docente']), async (req, res) => {
   }
 });
 
-// --- ROTA DE EXCLUSÃO ---
+/*
+  Exclui um projeto.
+
+  A exclusão só pode ser feita pelo docente responsável pelo projeto.
+*/
 app.delete('/api/projects/:id', auth(['docente']), async (req, res) => {
   try {
     const p = await Project.findByPk(req.params.id);
@@ -334,6 +438,13 @@ app.delete('/api/projects/:id', auth(['docente']), async (req, res) => {
   }
 });
 
+/*
+  Encerra um projeto.
+
+  Ao encerrar o projeto:
+  - O status do projeto muda para CONCLUIDO;
+  - Candidaturas pendentes são marcadas como não avaliadas por encerramento.
+*/
 app.post('/api/projects/:id/close', auth(['docente']), async (req, res) => {
   try {
     const p = await Project.findByPk(req.params.id);
@@ -362,6 +473,11 @@ app.post('/api/projects/:id/close', auth(['docente']), async (req, res) => {
 });
 
 // --- MURAL ---
+
+/*
+  Cria uma publicação no mural de um projeto.
+  Apenas docentes podem publicar no mural.
+*/
 app.post('/api/projects/:id/mural', auth(['docente']), async (req, res) => {
   try {
     const { content } = req.body;
@@ -384,6 +500,15 @@ app.post('/api/projects/:id/mural', auth(['docente']), async (req, res) => {
 });
 
 // --- CANDIDATURAS ---
+
+/*
+  Permite que um discente se candidate a um projeto.
+
+  A candidatura só é criada se:
+  - O projeto existir;
+  - O projeto estiver aberto;
+  - O discente ainda não tiver se candidatado ao mesmo projeto.
+*/
 app.post('/api/projects/:id/apply', auth(['discente']), async (req, res) => {
   try {
     const project = await Project.findByPk(req.params.id);
@@ -420,6 +545,15 @@ app.post('/api/projects/:id/apply', auth(['discente']), async (req, res) => {
   }
 });
 
+/*
+  Lista candidaturas.
+
+  Para discente:
+  - Retorna as próprias candidaturas.
+
+  Para docente:
+  - Retorna candidaturas dos projetos criados por ele.
+*/
 app.get('/api/applications', auth(), async (req, res) => {
   try {
     if (req.userRole === 'discente') {
@@ -471,6 +605,16 @@ app.get('/api/applications', auth(), async (req, res) => {
   }
 });
 
+/*
+  Atualiza o status de uma candidatura.
+
+  O docente pode:
+  - Aceitar;
+  - Recusar;
+  - Remover.
+
+  Ao aceitar, o sistema verifica se ainda há vagas disponíveis.
+*/
 app.put('/api/applications/:id', auth(['docente']), async (req, res) => {
   try {
     const { status, reason } = req.body;
@@ -496,6 +640,10 @@ app.put('/api/applications/:id', auth(['docente']), async (req, res) => {
       await project.save();
     }
 
+    /*
+      Quando uma candidatura aceita é recusada ou removida,
+      a quantidade de vagas ocupadas do projeto é reduzida.
+    */
     if (
       (status === 'RECUSADA' || status === 'REMOVIDO') &&
       appFound.status === 'ACEITA'
@@ -519,6 +667,11 @@ app.put('/api/applications/:id', auth(['docente']), async (req, res) => {
   }
 });
 
+/*
+  Busca discentes pelo nome.
+
+  Essa rota é usada pelo docente para localizar alunos cadastrados.
+*/
 app.get('/api/users/search', auth(['docente']), async (req, res) => {
   try {
     const { nome } = req.query;
@@ -544,8 +697,20 @@ app.get('/api/users/search', auth(['docente']), async (req, res) => {
   }
 });
 
+/*
+  Define a porta do servidor.
+
+  Em produção, o Render define process.env.PORT automaticamente.
+  Em desenvolvimento local, usa a porta 3000.
+*/
 const PORT = process.env.PORT || 3000;
 
+/*
+  Sincroniza os modelos Sequelize com o banco de dados e inicia o servidor.
+
+  Se a conexão com o banco falhar, o erro é exibido no console
+  e a aplicação é encerrada para evitar execução inconsistente.
+*/
 sequelize
   .sync()
   .then(() => {
