@@ -199,7 +199,7 @@ function SamplePrevArrow(props) {
   );
 }
 
-// --- COMPONENTE DE VALIDAÇÃO (Usado no Registro e Criação de Projeto) ---
+// --- COMPONENTE DE VALIDAÇÃO ---
 const ValidationList = ({ checks }) => (
   <div className="mt-2 space-y-1">
     {checks.map((check, i) => (
@@ -739,6 +739,9 @@ function Dashboard() {
                     </button>
                   ) : (
                     <>
+                      <button onClick={() => handleEditOrCreate(null)} className="bg-[#1c2b36] text-white px-8 py-4 rounded-full font-bold shadow-xl hover:bg-gray-900 transition flex items-center gap-3">
+                        Criar Projeto <FaArrowRight/>
+                      </button>
                       <button onClick={() => setTab('equipes')} className="bg-white text-[#1c2b36] border-2 border-gray-200 px-8 py-4 rounded-full font-bold hover:bg-gray-50 transition flex items-center gap-3">
                         Gerenciar Projetos <FaClipboardList/>
                       </button>
@@ -777,7 +780,7 @@ function Dashboard() {
                       <p className="font-bold text-sm text-gray-800 mb-6 line-clamp-2 h-10 leading-tight">{p.titulo}</p>
                       
                       <div className="flex flex-col gap-3 text-xs text-gray-500 mb-6 font-medium border-t border-gray-100 pt-5">
-                        <span className="flex items-center gap-3"><FaUserGraduate className="text-lg opacity-50"/> {(p.docente?.nome || firstName).split(' ')[0]}</span>
+                        <span className="flex items-center gap-3"><FaUserGraduate className="text-lg opacity-50"/> {p.docente?.nome?.split(' ')[0] || firstName}</span>
                         <span className="flex items-center gap-3"><FaBuilding className="text-lg opacity-50"/> {p.campus || 'Campus Central'}</span>
                         <span className="flex items-center gap-3"><FaClock className="text-lg opacity-50"/> {p.carga_horaria} horas/semana</span>
                       </div>
@@ -880,7 +883,7 @@ function Dashboard() {
                             </div>
                             <h3 className="font-extrabold text-xl text-gray-900 mb-4 group-hover:text-blue-700 transition line-clamp-2">{p.titulo}</h3>
                             <div className="flex flex-col gap-2 text-xs text-gray-600 mb-5 font-medium border-t border-gray-100 pt-4">
-                              <span className="flex items-center gap-2"><FaUserGraduate className="opacity-50"/> {(p.docente?.nome || firstName).split(' ')[0]}</span>
+                              <span className="flex items-center gap-2"><FaUserGraduate className="opacity-50"/> {p.docente?.nome?.split(' ')[0] || firstName}</span>
                               <span className="flex items-center gap-2"><FaMapMarkerAlt className="opacity-50"/> {p.campus || 'N/A'}</span>
                             </div>
                             
@@ -971,7 +974,7 @@ function Dashboard() {
                         {searchResults.map(u => (
                           <li key={u.id} className="flex justify-between items-center bg-white p-4 hover:bg-gray-50 cursor-pointer" onClick={() => setViewStudent(u)}>
                             <div className="flex items-center gap-4">
-                               <div className="w-10 h-10 bg-[#243B53] text-white rounded-xl flex items-center justify-center font-bold">{(u.nome || 'A').charAt(0)}</div>
+                               <div className="w-10 h-10 bg-[#243B53] text-white rounded-xl flex items-center justify-center font-bold">{u.nome?.charAt(0) || 'A'}</div>
                                <div><p className="font-bold text-gray-900">{u.nome}</p><p className="text-xs text-gray-500">{u.email}</p></div>
                             </div>
                           </li>
@@ -1006,7 +1009,7 @@ function Dashboard() {
                                 (p.applications || []).filter(a => a.status === 'ACEITA').map(m => (
                                   <div key={m.id} className="flex items-center justify-between p-4 rounded-2xl border border-gray-100 bg-white hover:shadow-md transition">
                                     <div className="flex items-center gap-3 cursor-pointer" onClick={() => setViewStudent(m.discente)}>
-                                      <div className="w-10 h-10 bg-gray-100 text-[#1c2b36] rounded-xl flex items-center justify-center font-extrabold">{(m.discente?.nome || 'A').charAt(0)}</div>
+                                      <div className="w-10 h-10 bg-gray-100 text-[#1c2b36] rounded-xl flex items-center justify-center font-extrabold">{m.discente?.nome?.charAt(0) || 'A'}</div>
                                       <div><p className="font-bold text-sm text-gray-900">{m.discente?.nome}</p></div>
                                     </div>
                                     <button onClick={() => manageApp(m.id, 'RECUSADA', true)} className="text-red-500 hover:bg-red-50 p-2 rounded-lg transition" title="Remover"><FaTimes/></button>
@@ -1235,7 +1238,7 @@ function Dashboard() {
                       <ValidationList checks={[{ text: "Insira as horas", met: projReqs.horas.req }]} />
                     </div>
                     <div className="col-span-1">
-                      <label className="block text-sm font-bold text-[#1c2b36] mb-2">Vagas</label>
+                      <label className="block text-sm font-bold text-[#1c2b36] mb-2">Total Vagas</label>
                       <input 
                         name="vagas_totais" 
                         type="number" 
@@ -1331,6 +1334,7 @@ function Dashboard() {
                       Quero me Candidatar <FaRocket/>
                     </button>
                   )}
+
                   {user.role === 'discente' && myStatusInProject(viewProj.id) && (
                     <button disabled className="bg-gray-100 text-gray-500 px-12 py-5 rounded-2xl font-bold border-2 border-gray-200 w-full md:w-auto text-lg flex items-center justify-center gap-3">
                       <FaClock/> Candidatura em Análise
@@ -1351,7 +1355,7 @@ function Dashboard() {
                 
                 <div className="text-center mb-8 pt-6">
                   <div className="w-28 h-28 bg-[#1c2b36] text-white rounded-3xl flex items-center justify-center text-5xl font-extrabold mx-auto mb-6 shadow-xl transform rotate-3">
-                    <div className="-rotate-3">{(viewStudent.nome || 'A').charAt(0).toUpperCase()}</div>
+                    <div className="-rotate-3">{viewStudent.nome?.charAt(0).toUpperCase() || 'A'}</div>
                   </div>
                   <h2 className="text-2xl font-extrabold text-gray-900">{viewStudent.nome}</h2>
                   <p className="text-sm font-bold text-blue-600 mt-1">{viewStudent.email}</p>
