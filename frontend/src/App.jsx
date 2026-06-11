@@ -5,7 +5,7 @@ import {
   FaUserGraduate, FaEnvelope, FaExternalLinkAlt, FaTimes, FaUniversity, 
   FaLayerGroup, FaClipboardList, FaUsers, FaRocket, FaUserCircle, FaPowerOff, 
   FaChevronLeft, FaChevronRight, FaBullhorn, FaPaperPlane, FaTrash, FaPlus, FaListUl, FaCheckCircle, FaEdit, FaBan, FaCheck,
-  FaExclamationTriangle, FaQuestionCircle, FaInfoCircle, FaSpinner, FaEye, FaEyeSlash, FaFilter
+  FaExclamationTriangle, FaQuestionCircle, FaInfoCircle, FaSpinner, FaEye, FaEyeSlash, FaFilter, FaLock, FaUser
 } from 'react-icons/fa';
 import Slider from "react-slick"; 
 import api from './api';
@@ -51,8 +51,8 @@ const safeParse = (data) => {
 
 // --- FUNDO DAS TELAS DE LOGIN E CADASTRO ---
 const authBackgroundStyle = {
-  backgroundImage:
-    "linear-gradient(rgba(5, 18, 35, 0.45), rgba(5, 18, 35, 0.55)), url('/imagens/fundo-conecta.png')",
+  backgroundImage: "url('/imagens/fundo-conecta.png')", // Mantenha sua imagem de fundo
+  backgroundColor: '#a2c2d6', // Cor de backup baseada na imagem 2
   backgroundSize: 'cover',
   backgroundPosition: 'center',
   backgroundRepeat: 'no-repeat'
@@ -215,7 +215,6 @@ function InputModal({ data, onCancel }) {
 // --- SETAS DO CARROSSEL ---
 function SampleNextArrow(props) {
   const { onClick } = props;
-
   return (
     <div
       className="absolute top-1/2 -translate-y-1/2 right-8 z-20 cursor-pointer text-white opacity-60 hover:opacity-100 transition-all hover:scale-110 drop-shadow-lg"
@@ -229,7 +228,6 @@ function SampleNextArrow(props) {
 
 function SamplePrevArrow(props) {
   const { onClick } = props;
-
   return (
     <div
       className="absolute top-1/2 -translate-y-1/2 left-8 z-20 cursor-pointer text-white opacity-60 hover:opacity-100 transition-all hover:scale-110 drop-shadow-lg"
@@ -256,13 +254,10 @@ function Login() {
   const handle = async (e) => {
     e.preventDefault();
     setIsLoading(true);
-
     try {
       const { data } = await api.post('/auth/login', form);
-
       localStorage.setItem('token', data.token);
       localStorage.setItem('user', JSON.stringify(data.user));
-
       navigate('/dashboard');
     } catch (err) {
       setFeedback({
@@ -276,110 +271,134 @@ function Login() {
   };
 
   return (
-    <div
-      className="min-h-screen flex justify-center items-center p-4 relative overflow-hidden"
-      style={authBackgroundStyle}
-    >
+    <div className="min-h-screen flex justify-center items-center p-4 relative overflow-hidden" style={authBackgroundStyle}>
       <FeedbackModal data={feedback} onClose={() => setFeedback(null)} />
 
-      <form
-        onSubmit={handle}
-        className="bg-white/20 backdrop-blur-xl p-8 md:p-10 rounded-3xl shadow-2xl w-full max-w-md border border-white/30 animate-fadeIn"
-      >
-        <div className="flex justify-center mb-6">
-          <div className="bg-white/20 text-white p-4 rounded-full shadow-lg border border-white/30">
-            <FaUniversity className="text-3xl" />
-          </div>
+      <div className="relative bg-white/40 backdrop-blur-xl p-8 md:p-10 rounded-[2rem] shadow-2xl w-full max-w-md border border-white/50 animate-fadeIn">
+        
+        {/* Botão X (Close) */}
+        <div className="absolute top-4 right-4 bg-[#1c2b36] text-white p-2 rounded-xl shadow cursor-pointer hover:bg-gray-800 transition">
+          <FaTimes size={16} />
         </div>
 
-        <h2 className="text-3xl font-extrabold text-white mb-2 text-center drop-shadow">
-          Conecta Pesquisa
+        <h2 className="text-3xl font-extrabold text-gray-900 mb-8 mt-2 text-center drop-shadow-sm">
+          Login
         </h2>
 
-        <p className="text-center text-blue-50 mb-8 text-sm">
-          Acesse sua conta para continuar
-        </p>
-        
-        <div className="space-y-4 mb-6">
-          <div>
-            <label className="sr-only">E-mail</label>
-            <input
-              required
-              type="email"
-              className="bg-white/85 border border-white/50 w-full p-3.5 rounded-xl focus:ring-2 focus:ring-blue-300 outline-none transition text-gray-800 placeholder-gray-500"
-              placeholder="Seu e-mail acadêmico"
-              onChange={e => setForm({ ...form, email: e.target.value })}
-              disabled={isLoading}
-            />
+        <form onSubmit={handle} className="space-y-6">
+          <div className="relative">
+            <label className="text-gray-900 font-bold text-sm mb-1 block">Email</label>
+            <div className="flex items-center border-b-2 border-gray-800 py-2 transition-colors focus-within:border-blue-600">
+              <input
+                required
+                type="email"
+                className="bg-transparent outline-none w-full text-gray-900 placeholder-gray-600 font-medium"
+                onChange={e => setForm({ ...form, email: e.target.value })}
+                disabled={isLoading}
+              />
+              <FaEnvelope className="text-gray-800 ml-2" />
+            </div>
           </div>
 
           <div className="relative">
-            <label className="sr-only">Senha</label>
-            <input
-              required
-              type={showPwd ? 'text' : 'password'}
-              className="bg-white/85 border border-white/50 w-full p-3.5 rounded-xl focus:ring-2 focus:ring-blue-300 outline-none transition pr-12 text-gray-800 placeholder-gray-500"
-              placeholder="Sua senha"
-              onChange={e => setForm({ ...form, password: e.target.value })}
-              disabled={isLoading}
-            />
-
-            <button
-              type="button"
-              tabIndex="-1"
-              className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-800 transition"
-              onClick={() => setShowPwd(!showPwd)}
-            >
-              {showPwd ? <FaEyeSlash size={20} /> : <FaEye size={20} />}
-            </button>
+            <label className="text-gray-900 font-bold text-sm mb-1 block">Senha</label>
+            <div className="flex items-center border-b-2 border-gray-800 py-2 transition-colors focus-within:border-blue-600">
+              <input
+                required
+                type={showPwd ? 'text' : 'password'}
+                className="bg-transparent outline-none w-full text-gray-900 placeholder-gray-600 font-medium"
+                onChange={e => setForm({ ...form, password: e.target.value })}
+                disabled={isLoading}
+              />
+              <button
+                type="button"
+                tabIndex="-1"
+                className="text-gray-800 ml-2 hover:text-blue-600 transition"
+                onClick={() => setShowPwd(!showPwd)}
+              >
+                {showPwd ? <FaEyeSlash size={18} /> : <FaEye size={18} />}
+              </button>
+            </div>
+            
+            <div className="flex justify-end mt-2">
+              <a href="#" className="text-xs font-bold text-gray-800 hover:text-blue-700 hover:underline">Esqueceu a Senha?</a>
+            </div>
           </div>
-        </div>
 
-        <button
-          type="submit"
-          disabled={isLoading}
-          className="bg-blue-700 text-white w-full py-3.5 rounded-xl font-bold hover:bg-blue-800 transition flex justify-center items-center gap-2 disabled:opacity-70 disabled:cursor-not-allowed shadow-lg"
-        >
-          {isLoading ? (
-            <>
-              <FaSpinner className="animate-spin" /> Entrando...
-            </>
-          ) : (
-            'Entrar na Plataforma'
-          )}
-        </button>
+          <button
+            type="submit"
+            disabled={isLoading}
+            className="bg-[#1c2b36] text-white w-full py-4 rounded-2xl font-bold text-lg hover:bg-gray-900 transition flex justify-center items-center gap-2 disabled:opacity-70 disabled:cursor-not-allowed shadow-lg mt-4"
+          >
+            {isLoading ? (
+              <><FaSpinner className="animate-spin" /> Entrando...</>
+            ) : (
+              'Entrar'
+            )}
+          </button>
 
-        <div className="mt-6 text-center border-t border-white/20 pt-4">
-          <span className="text-blue-50 text-sm">Novo por aqui? </span>
-          <Link to="/register" className="text-sm font-bold text-white hover:underline">
-            Criar Conta
-          </Link>
-        </div>
-      </form>
+          <div className="text-center pt-2">
+            <span className="text-gray-800 text-sm font-medium">Não tem uma conta? </span>
+            <Link to="/register" className="text-sm font-extrabold text-[#1c2b36] hover:underline">
+              Registrar
+            </Link>
+          </div>
+        </form>
+      </div>
     </div>
   );
 }
 
 function Register() {
   const [form, setForm] = useState({ nome: '', email: '', password: '', role: 'discente' });
+  const [confirmPwd, setConfirmPwd] = useState('');
   const [feedback, setFeedback] = useState(null);
   const [isLoading, setIsLoading] = useState(false);
   const [showPwd, setShowPwd] = useState(false);
+  const [showConfirmPwd, setShowConfirmPwd] = useState(false);
   const navigate = useNavigate();
+
+  // Lógica Dinâmica de Validação
+  const reqs = {
+    nome: {
+      req: form.nome.trim().length > 0,
+      len: form.nome.trim().length >= 3
+    },
+    email: {
+      req: form.email.trim().length > 0,
+      valid: /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email)
+    },
+    password: {
+      req: form.password.length > 0,
+      len: form.password.length >= 6,
+      letter: /[a-zA-Z]/.test(form.password),
+      number: /\d/.test(form.password),
+      special: /[^a-zA-Z0-9]/.test(form.password)
+    },
+    confirm: {
+      req: confirmPwd.length > 0,
+      match: confirmPwd === form.password && form.password.length > 0
+    }
+  };
+
+  const isFormValid =
+    reqs.nome.req && reqs.nome.len &&
+    reqs.email.req && reqs.email.valid &&
+    reqs.password.req && reqs.password.len && reqs.password.letter && reqs.password.number && reqs.password.special &&
+    reqs.confirm.req && reqs.confirm.match;
 
   const handle = async (e) => {
     e.preventDefault();
-    setIsLoading(true);
+    if (!isFormValid) return;
 
+    setIsLoading(true);
     try {
       await api.post('/auth/register', form);
-
       setFeedback({
         type: 'success',
         title: 'Conta criada com sucesso',
         message: 'Seu cadastro foi realizado. Redirecionando para o login...'
       });
-
       setTimeout(() => navigate('/'), 2000);
     } catch (err) {
       setFeedback({
@@ -387,82 +406,133 @@ function Register() {
         title: 'Erro no cadastro',
         message: err.response?.data?.error || 'Não foi possível concluir o cadastro. Confira os dados e tente novamente.'
       });
-
       setIsLoading(false);
     }
   };
 
+  // Componente Reutilizável de Requisito Dinâmico
+  const ValidationList = ({ checks }) => (
+    <div className="mt-2 space-y-1">
+      {checks.map((check, i) => (
+        <div key={i} className={`text-xs flex items-center gap-1.5 transition-colors ${check.met ? 'text-green-700 font-bold' : 'text-red-500 font-medium'}`}>
+          {check.met ? <FaCheckCircle /> : <FaTimes className="opacity-80" />}
+          <span>{check.text}</span>
+        </div>
+      ))}
+    </div>
+  );
+
   return (
-    <div
-      className="min-h-screen flex justify-center items-center p-4 relative overflow-hidden"
-      style={authBackgroundStyle}
-    >
+    <div className="min-h-screen flex justify-center items-center p-4 relative overflow-hidden" style={authBackgroundStyle}>
       <FeedbackModal data={feedback} onClose={() => setFeedback(null)} />
 
-      <form
-        onSubmit={handle}
-        className="bg-white/20 backdrop-blur-xl p-8 md:p-10 rounded-3xl shadow-2xl w-full max-w-md border border-white/30 animate-fadeIn my-8"
-      >
-        <div className="flex justify-center mb-6">
-          <div className="bg-white/20 text-white p-4 rounded-full shadow-lg border border-white/30">
-            <FaUserGraduate className="text-3xl" />
-          </div>
+      <div className="relative bg-white/40 backdrop-blur-xl p-8 md:p-10 rounded-[2rem] shadow-2xl w-full max-w-lg border border-white/50 animate-fadeIn my-6 max-h-[90vh] overflow-y-auto custom-scrollbar">
+        
+        <div className="absolute top-4 right-4 bg-[#1c2b36] text-white p-2 rounded-xl shadow cursor-pointer hover:bg-gray-800 transition">
+          <Link to="/"><FaTimes size={16} /></Link>
         </div>
 
-        <h2 className="text-3xl font-extrabold text-white mb-2 text-center drop-shadow">
-          Criar Nova Conta
+        <h2 className="text-3xl font-extrabold text-gray-900 mb-8 mt-2 text-center drop-shadow-sm">
+          Registrar
         </h2>
 
-        <p className="text-center text-blue-50 mb-8 text-sm">
-          Preencha os dados para acessar os projetos
-        </p>
-        
-        <div className="space-y-4 mb-8">
-          <input
-            required
-            className="bg-white/85 border border-white/50 w-full p-3.5 rounded-xl focus:ring-2 focus:ring-blue-300 outline-none text-gray-800 placeholder-gray-500"
-            placeholder="Nome Completo"
-            onChange={e => setForm({ ...form, nome: e.target.value })}
-            disabled={isLoading}
-          />
-
-          <input
-            required
-            type="email"
-            className="bg-white/85 border border-white/50 w-full p-3.5 rounded-xl focus:ring-2 focus:ring-blue-300 outline-none text-gray-800 placeholder-gray-500"
-            placeholder="E-mail Acadêmico"
-            onChange={e => setForm({ ...form, email: e.target.value })}
-            disabled={isLoading}
-          />
-          
+        <form onSubmit={handle} className="space-y-6">
+          {/* NOME */}
           <div className="relative">
-            <input
-              required
-              type={showPwd ? 'text' : 'password'}
-              minLength="6"
-              className="bg-white/85 border border-white/50 w-full p-3.5 rounded-xl focus:ring-2 focus:ring-blue-300 outline-none pr-12 text-gray-800 placeholder-gray-500"
-              placeholder="Crie uma Senha"
-              onChange={e => setForm({ ...form, password: e.target.value })}
-              disabled={isLoading}
-            />
-
-            <button
-              type="button"
-              tabIndex="-1"
-              className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-800"
-              onClick={() => setShowPwd(!showPwd)}
-            >
-              {showPwd ? <FaEyeSlash size={20} /> : <FaEye size={20} />}
-            </button>
+            <label className="text-gray-900 font-bold text-sm mb-1 block">Nome Completo</label>
+            <div className="flex items-center border-b-2 border-gray-800 py-2 transition-colors focus-within:border-blue-600">
+              <input
+                type="text"
+                className="bg-transparent outline-none w-full text-gray-900 placeholder-gray-600 font-medium"
+                onChange={e => setForm({ ...form, nome: e.target.value })}
+                disabled={isLoading}
+              />
+              <FaUser className="text-gray-800 ml-2" />
+            </div>
+            <ValidationList checks={[
+              { text: "O nome é obrigatório", met: reqs.nome.req },
+              { text: "O nome deve ter pelo menos 3 caracteres", met: reqs.nome.len }
+            ]} />
           </div>
 
+          {/* E-MAIL */}
+          <div className="relative">
+            <label className="text-gray-900 font-bold text-sm mb-1 block">E-mail Acadêmico</label>
+            <div className="flex items-center border-b-2 border-gray-800 py-2 transition-colors focus-within:border-blue-600">
+              <input
+                type="email"
+                className="bg-transparent outline-none w-full text-gray-900 placeholder-gray-600 font-medium"
+                onChange={e => setForm({ ...form, email: e.target.value })}
+                disabled={isLoading}
+              />
+              <FaEnvelope className="text-gray-800 ml-2" />
+            </div>
+            <ValidationList checks={[
+              { text: "O e-mail é obrigatório", met: reqs.email.req },
+              { text: "Digite um e-mail válido, como exemplo@email.com", met: reqs.email.valid }
+            ]} />
+          </div>
+          
+          {/* SENHA */}
+          <div className="relative">
+            <label className="text-gray-900 font-bold text-sm mb-1 block">Criar Senha</label>
+            <div className="flex items-center border-b-2 border-gray-800 py-2 transition-colors focus-within:border-blue-600">
+              <input
+                type={showPwd ? 'text' : 'password'}
+                className="bg-transparent outline-none w-full text-gray-900 placeholder-gray-600 font-medium"
+                onChange={e => setForm({ ...form, password: e.target.value })}
+                disabled={isLoading}
+              />
+              <button
+                type="button"
+                tabIndex="-1"
+                className="text-gray-800 ml-2 hover:text-blue-600 transition"
+                onClick={() => setShowPwd(!showPwd)}
+              >
+                {showPwd ? <FaEyeSlash size={18} /> : <FaEye size={18} />}
+              </button>
+            </div>
+            <ValidationList checks={[
+              { text: "A senha é obrigatória", met: reqs.password.req },
+              { text: "A senha deve ter no mínimo 6 caracteres", met: reqs.password.len },
+              { text: "A senha deve conter pelo menos uma letra", met: reqs.password.letter },
+              { text: "A senha deve conter pelo menos um número", met: reqs.password.number },
+              { text: "A senha deve conter pelo menos um caractere especial", met: reqs.password.special }
+            ]} />
+          </div>
+
+          {/* CONFIRMAR SENHA */}
+          <div className="relative">
+            <label className="text-gray-900 font-bold text-sm mb-1 block">Confirmar Senha</label>
+            <div className="flex items-center border-b-2 border-gray-800 py-2 transition-colors focus-within:border-blue-600">
+              <input
+                type={showConfirmPwd ? 'text' : 'password'}
+                className="bg-transparent outline-none w-full text-gray-900 placeholder-gray-600 font-medium"
+                onChange={e => setConfirmPwd(e.target.value)}
+                disabled={isLoading}
+              />
+              <button
+                type="button"
+                tabIndex="-1"
+                className="text-gray-800 ml-2 hover:text-blue-600 transition"
+                onClick={() => setShowConfirmPwd(!showConfirmPwd)}
+              >
+                {showConfirmPwd ? <FaEyeSlash size={18} /> : <FaEye size={18} />}
+              </button>
+            </div>
+            <ValidationList checks={[
+              { text: "A confirmação de senha é obrigatória", met: reqs.confirm.req },
+              { text: "As senhas devem ser iguais", met: reqs.confirm.match }
+            ]} />
+          </div>
+
+          {/* TIPO DE USUÁRIO */}
           <div>
-            <label className="block text-sm font-semibold text-blue-50 mb-1">
+            <label className="block text-sm font-bold text-gray-900 mb-2">
               Eu sou um(a):
             </label>
-
             <select
-              className="bg-white/85 border border-white/50 w-full p-3.5 rounded-xl focus:ring-2 focus:ring-blue-300 outline-none text-gray-800"
+              className="bg-white/50 border border-gray-800 w-full p-3 rounded-xl focus:ring-2 focus:ring-blue-600 outline-none text-gray-900 font-medium"
               onChange={e => setForm({ ...form, role: e.target.value })}
               disabled={isLoading}
             >
@@ -470,34 +540,32 @@ function Register() {
               <option value="docente">Professor (Docente)</option>
             </select>
           </div>
-        </div>
 
-        <button
-          type="submit"
-          disabled={isLoading}
-          className="bg-green-600 text-white w-full py-3.5 rounded-xl font-bold hover:bg-green-700 transition flex justify-center items-center gap-2 disabled:opacity-70 disabled:cursor-not-allowed shadow-lg"
-        >
-          {isLoading ? (
-            <>
-              <FaSpinner className="animate-spin" /> Cadastrando...
-            </>
-          ) : (
-            'Finalizar Cadastro'
-          )}
-        </button>
+          <button
+            type="submit"
+            disabled={isLoading || !isFormValid}
+            className="bg-[#1c2b36] text-white w-full py-4 rounded-2xl font-bold text-lg hover:bg-gray-900 transition flex justify-center items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed shadow-lg mt-6"
+          >
+            {isLoading ? (
+              <><FaSpinner className="animate-spin" /> Processando...</>
+            ) : (
+              'Finalizar Cadastro'
+            )}
+          </button>
 
-        <div className="mt-6 text-center border-t border-white/20 pt-4">
-          <span className="text-blue-50 text-sm">Já possui uma conta? </span>
-          <Link to="/" className="text-sm font-bold text-white hover:underline">
-            Fazer Login
-          </Link>
-        </div>
-      </form>
+          <div className="text-center pt-2">
+            <span className="text-gray-800 text-sm font-medium">Já possui uma conta? </span>
+            <Link to="/" className="text-sm font-extrabold text-[#1c2b36] hover:underline">
+              Fazer Login
+            </Link>
+          </div>
+        </form>
+      </div>
     </div>
   );
 }
 
-// --- DASHBOARD ---
+// --- DASHBOARD (Mantido Exatamente Como o Original) ---
 function Dashboard() {
   const user = (() => {
     try {
