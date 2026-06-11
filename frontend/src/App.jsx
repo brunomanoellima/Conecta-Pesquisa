@@ -49,23 +49,13 @@ const safeParse = (data) => {
   }
 };
 
-// --- FUNDOS DAS TELAS DE LOGIN E CADASTRO ---
-// Coloque as imagens em:
-// frontend/public/imagens/fundo-aluno.png
-// frontend/public/imagens/fundo-professor.png
-const getAuthBackgroundStyle = (role = 'discente') => {
-  const image =
-    role === 'docente'
-      ? '/imagens/fundo-professor.png'
-      : '/imagens/fundo-aluno.png';
-
-  return {
-    backgroundImage: `url('${image}')`,
-    backgroundColor: '#0b1024',
-    backgroundSize: 'cover',
-    backgroundPosition: 'center',
-    backgroundRepeat: 'no-repeat'
-  };
+// --- FUNDO DAS TELAS DE LOGIN E CADASTRO ---
+const authBackgroundStyle = {
+  backgroundImage: "url('/imagens/fundo-conecta.png')", 
+  backgroundColor: '#a2c2d6', 
+  backgroundSize: 'cover',
+  backgroundPosition: 'center',
+  backgroundRepeat: 'no-repeat'
 };
 
 // COMPONENTE DE LOADING GLOBAL
@@ -241,7 +231,7 @@ function Login() {
   };
 
   return (
-    <div className="min-h-screen flex justify-center items-center p-4 relative overflow-hidden" style={getAuthBackgroundStyle('discente')}>
+    <div className="min-h-screen flex justify-center items-center p-4 relative overflow-hidden" style={authBackgroundStyle}>
       <FeedbackModal data={feedback} onClose={() => setFeedback(null)} />
 
       <div className="relative bg-white/40 backdrop-blur-xl p-8 md:p-10 rounded-[2rem] shadow-2xl w-full max-w-md border border-white/50 animate-fadeIn">
@@ -361,7 +351,7 @@ function Register() {
   );
 
   return (
-    <div className="min-h-screen flex justify-center items-center p-4 relative overflow-hidden" style={getAuthBackgroundStyle(form.role)}>
+    <div className="min-h-screen flex justify-center items-center p-4 relative overflow-hidden" style={authBackgroundStyle}>
       <FeedbackModal data={feedback} onClose={() => setFeedback(null)} />
 
       <div className="relative bg-white/40 backdrop-blur-xl p-8 md:p-10 rounded-[2rem] shadow-2xl w-full max-w-lg border border-white/50 animate-fadeIn my-6 max-h-[90vh] overflow-y-auto custom-scrollbar">
@@ -410,7 +400,7 @@ function Register() {
 
           <div>
             <label className="block text-sm font-bold text-gray-900 mb-2">Eu sou um(a):</label>
-            <select className="bg-white/50 border border-gray-800 w-full p-4 rounded-xl focus:ring-2 focus:ring-[#1c2b36] outline-none text-gray-900 font-bold cursor-pointer" value={form.role} onChange={e => setForm({ ...form, role: e.target.value })} disabled={isLoading}>
+            <select className="bg-white/50 border border-gray-800 w-full p-4 rounded-xl focus:ring-2 focus:ring-[#1c2b36] outline-none text-gray-900 font-bold cursor-pointer" onChange={e => setForm({ ...form, role: e.target.value })} disabled={isLoading}>
               <option value="discente">Aluno (Discente)</option>
               <option value="docente">Professor (Docente)</option>
             </select>
