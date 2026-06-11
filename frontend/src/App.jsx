@@ -16,7 +16,6 @@ const PrivateRoute = ({ children }) => {
   return token ? children : <Navigate to="/" replace />;
 };
 
-
 // --- UTILITÁRIOS ---
 const checkExpired = (dateString) => {
   if (!dateString) return false;
@@ -181,6 +180,36 @@ function InputModal({ data, onCancel }) {
   );
 }
 
+// --- SETAS DO CARROSSEL ---
+function SampleNextArrow(props) {
+  const { onClick } = props;
+  return (
+    <div className="absolute top-1/2 -translate-y-1/2 right-8 z-20 cursor-pointer text-white opacity-60 hover:opacity-100 transition-all hover:scale-110 drop-shadow-lg bg-black/20 p-2 rounded-full backdrop-blur-sm" onClick={onClick} aria-label="Próximo">
+      <FaChevronRight className="text-4xl" />
+    </div>
+  );
+}
+
+function SamplePrevArrow(props) {
+  const { onClick } = props;
+  return (
+    <div className="absolute top-1/2 -translate-y-1/2 left-8 z-20 cursor-pointer text-white opacity-60 hover:opacity-100 transition-all hover:scale-110 drop-shadow-lg bg-black/20 p-2 rounded-full backdrop-blur-sm" onClick={onClick} aria-label="Anterior">
+      <FaChevronLeft className="text-4xl" />
+    </div>
+  );
+}
+
+// --- COMPONENTE DE VALIDAÇÃO (Usado no Registro e Criação de Projeto) ---
+const ValidationList = ({ checks }) => (
+  <div className="mt-2 space-y-1">
+    {checks.map((check, i) => (
+      <div key={i} className={`text-[11px] flex items-center gap-1.5 transition-colors ${check.met ? 'text-green-600 font-bold' : 'text-gray-400 font-medium'}`}>
+        {check.met ? <FaCheckCircle /> : <FaTimes className="opacity-50" />}<span>{check.text}</span>
+      </div>
+    ))}
+  </div>
+);
+
 // --- PÁGINAS LOGIN E REGISTER ---
 function Login() {
   const [form, setForm] = useState({ email: '', password: '' });
@@ -283,16 +312,6 @@ function Register() {
     }
   };
 
-  const ValidationList = ({ checks }) => (
-    <div className="mt-2 space-y-1">
-      {checks.map((check, i) => (
-        <div key={i} className={`text-xs flex items-center gap-1.5 transition-colors ${check.met ? 'text-green-700 font-bold' : 'text-red-600 font-medium'}`}>
-          {check.met ? <FaCheckCircle /> : <FaTimes className="opacity-80" />}<span>{check.text}</span>
-        </div>
-      ))}
-    </div>
-  );
-
   return (
     <div className="min-h-screen flex justify-center items-center p-4 relative overflow-hidden" style={authBackgroundStyle}>
       <FeedbackModal data={feedback} onClose={() => setFeedback(null)} />
@@ -387,11 +406,14 @@ function Dashboard() {
   const [inputDialog, setInputDialog] = useState(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  // Estados locais para a Validação do Formulário de Projetos
+  // ESTADOS DO FORMULÁRIO DE PROJETO PARA VALIDAÇÃO
   const [projTitle, setProjTitle] = useState('');
   const [projDesc, setProjDesc] = useState('');
   const [projCampus, setProjCampus] = useState('');
   const [projHoras, setProjHoras] = useState('');
+  const [projVagas, setProjVagas] = useState('');
+  const [projPrazo, setProjPrazo] = useState('');
+  const [projTipo, setProjTipo] = useState('PESQUISA');
 
   const notify = (type, title, message) => setFeedback({ type, title, message });
   const clearConfirm = () => setConfirmDialog(null);
@@ -429,6 +451,9 @@ function Dashboard() {
       setProjDesc(project.descricao || '');
       setProjCampus(project.campus || '');
       setProjHoras(project.carga_horaria || '');
+      setProjVagas(project.vagas_totais || '');
+      setProjPrazo(project.prazo_inscricao ? project.prazo_inscricao.split('T')[0] : '');
+      setProjTipo(project.tipo || 'PESQUISA');
     } else {
       setObjList([]);
       setReqList([]);
@@ -436,6 +461,9 @@ function Dashboard() {
       setProjDesc('');
       setProjCampus('');
       setProjHoras('');
+      setProjVagas('');
+      setProjPrazo('');
+      setProjTipo('PESQUISA');
     }
     setProjectModalData(project || {}); 
   };
@@ -462,21 +490,28 @@ function Dashboard() {
     });
   };
 
+  // Validação dinâmica do Modal de Projetos
+  const projReqs = {
+    title: { req: (projTitle || '').trim().length > 0, len: (projTitle || '').trim().length >= 5 },
+    desc: { req: (projDesc || '').trim().length > 0, len: (projDesc || '').trim().length >= 20 },
+    obj: { req: objList.length > 0 },
+    reqs: { req: reqList.length > 0 },
+    campus: { req: (projCampus || '').trim().length > 0 },
+    horas: { req: Number(projHoras) > 0 },
+    vagas: { req: Number(projVagas) > 0 },
+    prazo: { req: projPrazo !== '' && new Date(projPrazo + 'T00:00:00') >= new Date(new Date().setHours(0,0,0,0)) }
+  };
+
+  const isProjValid = projReqs.title.len && projReqs.desc.len && projReqs.obj.req && projReqs.reqs.req && projReqs.campus.req && projReqs.horas.req && projReqs.vagas.req && projReqs.prazo.req;
+
   const saveProject = async (e) => {
     e.preventDefault();
+    if (!isProjValid) return;
+
     setIsSubmitting(true);
     const formData = new FormData(e.target);
     const body = Object.fromEntries(formData);
     
-    const prazo = new Date(body.prazo_inscricao);
-    const hoje = new Date();
-    hoje.setHours(23, 59, 59, 999);
-    
-    if (prazo < hoje) {
-      setIsSubmitting(false);
-      return notify('warning', 'Atenção ao Prazo', 'O prazo de inscrição não pode ser uma data no passado.');
-    }
-
     body.objetivos = JSON.stringify(objList);
     body.requisitos = JSON.stringify(reqList);
 
@@ -550,6 +585,18 @@ function Dashboard() {
 
   const myStatusInProject = (pid) => { if (user?.role !== 'discente') return null; const app = (data.applications || []).find(a => a.project_id === pid); return app ? app.status : null; };
 
+  const renderList = (json) => {
+    const list = safeParse(json);
+    if (list.length > 0) return (<ul className="list-disc pl-5 space-y-2 mt-2">{list.map((x, i) => (<li key={i} className="text-sm font-medium text-gray-700">{x}</li>))}</ul>);
+    return <p className="text-sm text-gray-400 mt-2">Nenhum item informado.</p>;
+  };
+
+  const renderSkills = (json) => {
+    const list = safeParse(json);
+    if (list.length > 0) return list.map((x, i) => (<span key={i} className="text-xs bg-[#243B53] text-white px-4 py-1.5 rounded-full font-bold shadow-sm">{x}</span>));
+    return <span className="text-xs text-gray-400 italic">Nenhuma habilidade cadastrada.</span>;
+  };
+
   if (!user) return null;
 
   const filteredProjects = (data.projects || []).filter(p => {
@@ -563,17 +610,6 @@ function Dashboard() {
 
   const userName = user?.nome || 'Usuário';
   const firstName = userName.split(' ')[0];
-
-  // Componente Reutilizável de Requisito Dinâmico para Formulários
-  const ValidationList = ({ checks }) => (
-    <div className="mt-2 space-y-1">
-      {checks.map((check, i) => (
-        <div key={i} className={`text-[11px] flex items-center gap-1.5 transition-colors ${check.met ? 'text-green-600 font-bold' : 'text-gray-400 font-medium'}`}>
-          {check.met ? <FaCheckCircle /> : <FaTimes className="opacity-50" />}<span>{check.text}</span>
-        </div>
-      ))}
-    </div>
-  );
 
   return (
     <div className="min-h-screen bg-[#F0F4F8] font-sans text-[#1c2b36] relative overflow-x-hidden">
@@ -601,11 +637,14 @@ function Dashboard() {
           </nav>
 
           <div className="flex items-center gap-4">
-            {/* Lupa clica para ir direto para busca de projetos */}
             <button onClick={() => setTab('projetos')} className="bg-white p-3 rounded-full text-gray-600 hover:bg-gray-100 transition shadow-sm hidden sm:block"><FaSearch/></button>
             
-            {/* DROPDOWN DO USUÁRIO */}
-            <div className="relative">
+            {/* DROPDOWN DO USUÁRIO CORRIGIDO */}
+            <div 
+              className="relative" 
+              onMouseEnter={() => setIsUserMenuOpen(true)} 
+              onMouseLeave={() => setIsUserMenuOpen(false)}
+            >
               <div 
                 className="flex items-center gap-3 bg-white px-5 py-2.5 rounded-full shadow-sm border border-gray-100 cursor-pointer group hover:shadow-md transition" 
                 onClick={() => setIsUserMenuOpen(!isUserMenuOpen)}
@@ -616,10 +655,7 @@ function Dashboard() {
               </div>
 
               {isUserMenuOpen && (
-                <div 
-                  className="absolute right-0 mt-3 w-56 bg-white rounded-2xl shadow-2xl border border-gray-100 overflow-hidden z-50 animate-fadeIn"
-                  onMouseLeave={() => setIsUserMenuOpen(false)} // Esconde ao tirar o mouse do menu
-                >
+                <div className="absolute right-0 top-full mt-2 w-56 bg-white rounded-2xl shadow-2xl border border-gray-100 overflow-hidden z-50 animate-fadeIn">
                   <div className="p-4 border-b border-gray-100 bg-gray-50/50">
                     <p className="text-xs text-gray-500 font-extrabold uppercase tracking-widest mb-1">Logado como</p>
                     <p className="text-sm font-bold text-[#1c2b36] truncate">{user.email}</p>
@@ -659,7 +695,7 @@ function Dashboard() {
         </div>
       </header>
 
-      {/* HERO SECTION COM NOVO ENQUADRAMENTO */}
+      {/* HERO SECTION COM ENQUADRAMENTO CORRIGIDO */}
       {tab === 'inicio' && (
         <>
           <div 
@@ -741,7 +777,7 @@ function Dashboard() {
                       <p className="font-bold text-sm text-gray-800 mb-6 line-clamp-2 h-10 leading-tight">{p.titulo}</p>
                       
                       <div className="flex flex-col gap-3 text-xs text-gray-500 mb-6 font-medium border-t border-gray-100 pt-5">
-                        <span className="flex items-center gap-3"><FaUserGraduate className="text-lg opacity-50"/> {p.docente?.nome?.split(' ')[0] || firstName}</span>
+                        <span className="flex items-center gap-3"><FaUserGraduate className="text-lg opacity-50"/> {(p.docente?.nome || firstName).split(' ')[0]}</span>
                         <span className="flex items-center gap-3"><FaBuilding className="text-lg opacity-50"/> {p.campus || 'Campus Central'}</span>
                         <span className="flex items-center gap-3"><FaClock className="text-lg opacity-50"/> {p.carga_horaria} horas/semana</span>
                       </div>
@@ -844,7 +880,7 @@ function Dashboard() {
                             </div>
                             <h3 className="font-extrabold text-xl text-gray-900 mb-4 group-hover:text-blue-700 transition line-clamp-2">{p.titulo}</h3>
                             <div className="flex flex-col gap-2 text-xs text-gray-600 mb-5 font-medium border-t border-gray-100 pt-4">
-                              <span className="flex items-center gap-2"><FaUserGraduate className="opacity-50"/> {p.docente?.nome?.split(' ')[0] || firstName}</span>
+                              <span className="flex items-center gap-2"><FaUserGraduate className="opacity-50"/> {(p.docente?.nome || firstName).split(' ')[0]}</span>
                               <span className="flex items-center gap-2"><FaMapMarkerAlt className="opacity-50"/> {p.campus || 'N/A'}</span>
                             </div>
                             
@@ -935,7 +971,7 @@ function Dashboard() {
                         {searchResults.map(u => (
                           <li key={u.id} className="flex justify-between items-center bg-white p-4 hover:bg-gray-50 cursor-pointer" onClick={() => setViewStudent(u)}>
                             <div className="flex items-center gap-4">
-                               <div className="w-10 h-10 bg-[#243B53] text-white rounded-xl flex items-center justify-center font-bold">{u.nome?.charAt(0) || 'A'}</div>
+                               <div className="w-10 h-10 bg-[#243B53] text-white rounded-xl flex items-center justify-center font-bold">{(u.nome || 'A').charAt(0)}</div>
                                <div><p className="font-bold text-gray-900">{u.nome}</p><p className="text-xs text-gray-500">{u.email}</p></div>
                             </div>
                           </li>
@@ -970,7 +1006,7 @@ function Dashboard() {
                                 (p.applications || []).filter(a => a.status === 'ACEITA').map(m => (
                                   <div key={m.id} className="flex items-center justify-between p-4 rounded-2xl border border-gray-100 bg-white hover:shadow-md transition">
                                     <div className="flex items-center gap-3 cursor-pointer" onClick={() => setViewStudent(m.discente)}>
-                                      <div className="w-10 h-10 bg-gray-100 text-[#1c2b36] rounded-xl flex items-center justify-center font-extrabold">{m.discente?.nome?.charAt(0) || 'A'}</div>
+                                      <div className="w-10 h-10 bg-gray-100 text-[#1c2b36] rounded-xl flex items-center justify-center font-extrabold">{(m.discente?.nome || 'A').charAt(0)}</div>
                                       <div><p className="font-bold text-sm text-gray-900">{m.discente?.nome}</p></div>
                                     </div>
                                     <button onClick={() => manageApp(m.id, 'RECUSADA', true)} className="text-red-500 hover:bg-red-50 p-2 rounded-lg transition" title="Remover"><FaTimes/></button>
@@ -1125,8 +1161,8 @@ function Dashboard() {
                       placeholder="Ex: Impactos da IA na Educação..." 
                     />
                     <ValidationList checks={[
-                      { text: "O título é obrigatório", met: projTitle.trim().length > 0 },
-                      { text: "O título deve ter mais de 10 caracteres", met: projTitle.trim().length >= 10 }
+                      { text: "O título é obrigatório", met: projReqs.title.req },
+                      { text: "O título deve ter mais de 5 caracteres", met: projReqs.title.len }
                     ]} />
                   </div>
                   
@@ -1140,8 +1176,8 @@ function Dashboard() {
                       placeholder="Explique os detalhes, metodologia e o que espera alcançar..." 
                     />
                     <ValidationList checks={[
-                      { text: "A descrição é obrigatória", met: projDesc.trim().length > 0 },
-                      { text: "Detalhe bem (mínimo de 30 caracteres)", met: projDesc.trim().length >= 30 }
+                      { text: "A descrição é obrigatória", met: projReqs.desc.req },
+                      { text: "Detalhe bem (mínimo de 20 caracteres)", met: projReqs.desc.len }
                     ]} />
                   </div>
                   
@@ -1152,7 +1188,7 @@ function Dashboard() {
                         <input value={objInput} onChange={e => setObjInput(e.target.value)} className="w-full border-2 border-gray-200 p-3.5 rounded-xl bg-white outline-none focus:border-[#1c2b36] transition font-medium" placeholder="Ex: Desenvolver MVP..." onKeyDown={e => { if(e.key === 'Enter'){ e.preventDefault(); addObj(e); } }}/>
                         <button type="button" onClick={addObj} className="bg-[#1c2b36] text-white w-full py-3 rounded-xl font-bold hover:bg-gray-900 transition flex justify-center items-center gap-2"><FaPlus/> Adicionar Objetivo</button>
                       </div>
-                      <ValidationList checks={[{ text: "Adicione pelo menos um objetivo", met: objList.length > 0 }]} />
+                      <ValidationList checks={[{ text: "Adicione pelo menos um objetivo", met: projReqs.obj.req }]} />
                       {objList.length > 0 && <ul className="mt-4 space-y-2">{objList.map((x,i) => <li key={i} className="flex justify-between items-center bg-white border border-gray-200 p-3 rounded-xl font-medium text-sm text-gray-700">{x} <button type="button" onClick={()=>removeObj(i)} className="text-gray-300 hover:text-red-500 transition p-1"><FaTimes/></button></li>)}</ul>}
                     </div>
 
@@ -1162,7 +1198,7 @@ function Dashboard() {
                         <input value={reqInput} onChange={e => setReqInput(e.target.value)} className="w-full border-2 border-gray-200 p-3.5 rounded-xl bg-white outline-none focus:border-[#1c2b36] transition font-medium" placeholder="Ex: Conhecimento em Python..." onKeyDown={e => { if(e.key === 'Enter'){ e.preventDefault(); addReq(e); } }}/>
                         <button type="button" onClick={addReq} className="bg-[#1c2b36] text-white w-full py-3 rounded-xl font-bold hover:bg-gray-900 transition flex justify-center items-center gap-2"><FaPlus/> Adicionar Requisito</button>
                       </div>
-                      <ValidationList checks={[{ text: "Adicione pelo menos um requisito", met: reqList.length > 0 }]} />
+                      <ValidationList checks={[{ text: "Adicione pelo menos um requisito", met: projReqs.reqs.req }]} />
                       {reqList.length > 0 && <ul className="mt-4 space-y-2">{reqList.map((x,i) => <li key={i} className="flex justify-between items-center bg-white border border-gray-200 p-3 rounded-xl font-medium text-sm text-gray-700">{x} <button type="button" onClick={()=>removeReq(i)} className="text-gray-300 hover:text-red-500 transition p-1"><FaTimes/></button></li>)}</ul>}
                     </div>
                   </div>
@@ -1170,7 +1206,7 @@ function Dashboard() {
                   <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
                     <div className="col-span-2 md:col-span-1">
                       <label className="block text-sm font-bold text-[#1c2b36] mb-2">Tipo</label>
-                      <select name="tipo" defaultValue={projectModalData.tipo || 'PESQUISA'} className="w-full border-2 border-gray-200 p-4 rounded-2xl bg-gray-50 font-bold outline-none cursor-pointer focus:border-[#1c2b36]">
+                      <select name="tipo" value={projTipo} onChange={(e) => setProjTipo(e.target.value)} className="w-full border-2 border-gray-200 p-4 rounded-2xl bg-gray-50 font-bold outline-none cursor-pointer focus:border-[#1c2b36]">
                         <option value="PESQUISA">Pesquisa</option>
                         <option value="EXTENSAO">Extensão</option>
                         <option value="VOLUNTARIO">Voluntário</option>
@@ -1184,10 +1220,10 @@ function Dashboard() {
                         onChange={(e) => setProjCampus(e.target.value)} 
                         className="w-full border-2 border-gray-200 p-4 rounded-2xl bg-gray-50 outline-none focus:border-[#1c2b36]" 
                       />
-                      <ValidationList checks={[{ text: "Campo obrigatório", met: projCampus.trim().length > 0 }]} />
+                      <ValidationList checks={[{ text: "Campo obrigatório", met: projReqs.campus.req }]} />
                     </div>
                     <div className="col-span-1">
-                      <label className="block text-sm font-bold text-[#1c2b36] mb-2">Horas/Semana</label>
+                      <label className="block text-sm font-bold text-[#1c2b36] mb-2">Horas/Sem.</label>
                       <input 
                         name="carga_horaria" 
                         type="number" 
@@ -1196,16 +1232,31 @@ function Dashboard() {
                         onChange={(e) => setProjHoras(e.target.value)} 
                         className="w-full border-2 border-gray-200 p-4 rounded-2xl bg-gray-50 outline-none text-center focus:border-[#1c2b36]" 
                       />
-                      <ValidationList checks={[{ text: "Insira as horas", met: projHoras > 0 }]} />
+                      <ValidationList checks={[{ text: "Insira as horas", met: projReqs.horas.req }]} />
                     </div>
                     <div className="col-span-1">
-                      <label className="block text-sm font-bold text-[#1c2b36] mb-2">Total Vagas</label>
-                      <input name="vagas_totais" type="number" min="1" defaultValue={projectModalData.vagas_totais || 1} required className="w-full border-2 border-gray-200 p-4 rounded-2xl bg-gray-50 outline-none text-center focus:border-[#1c2b36]" />
+                      <label className="block text-sm font-bold text-[#1c2b36] mb-2">Vagas</label>
+                      <input 
+                        name="vagas_totais" 
+                        type="number" 
+                        min="1" 
+                        value={projVagas} 
+                        onChange={(e) => setProjVagas(e.target.value)} 
+                        className="w-full border-2 border-gray-200 p-4 rounded-2xl bg-gray-50 outline-none text-center focus:border-[#1c2b36]" 
+                      />
+                      <ValidationList checks={[{ text: "Defina as vagas totais", met: projReqs.vagas.req }]} />
                     </div>
                   </div>
                   <div>
                     <label className="block text-sm font-bold text-[#1c2b36] mb-2">Data Limite de Inscrição</label>
-                    <input name="prazo_inscricao" type="date" defaultValue={projectModalData.prazo_inscricao?.split('T')[0]} required className="w-full border-2 border-gray-200 p-4 rounded-2xl bg-gray-50 font-bold outline-none cursor-pointer focus:border-[#1c2b36]" />
+                    <input 
+                      name="prazo_inscricao" 
+                      type="date" 
+                      value={projPrazo} 
+                      onChange={(e) => setProjPrazo(e.target.value)} 
+                      className="w-full border-2 border-gray-200 p-4 rounded-2xl bg-gray-50 font-bold outline-none cursor-pointer focus:border-[#1c2b36]" 
+                    />
+                    <ValidationList checks={[{ text: "Defina uma data futura", met: projReqs.prazo.req }]} />
                   </div>
                 </div>
                 
@@ -1213,7 +1264,7 @@ function Dashboard() {
                   <button type="button" onClick={() => setProjectModalData(null)} className="px-8 py-4 text-gray-600 font-bold hover:bg-gray-100 rounded-2xl transition border-2 border-transparent">Cancelar</button>
                   <button 
                     type="submit" 
-                    disabled={isSubmitting || projTitle.trim().length < 10 || projDesc.trim().length < 30 || objList.length === 0 || reqList.length === 0 || projCampus.trim().length === 0 || projHoras <= 0} 
+                    disabled={isSubmitting || !isProjValid} 
                     className="bg-green-600 disabled:opacity-50 disabled:cursor-not-allowed text-white px-10 py-4 rounded-2xl font-bold shadow-lg hover:bg-green-700 transition flex items-center gap-2 text-lg"
                   >
                     {isSubmitting ? <><FaSpinner className="animate-spin" /> Salvando...</> : (projectModalData.id ? 'Salvar Alterações' : 'Publicar Projeto')}
@@ -1280,7 +1331,6 @@ function Dashboard() {
                       Quero me Candidatar <FaRocket/>
                     </button>
                   )}
-
                   {user.role === 'discente' && myStatusInProject(viewProj.id) && (
                     <button disabled className="bg-gray-100 text-gray-500 px-12 py-5 rounded-2xl font-bold border-2 border-gray-200 w-full md:w-auto text-lg flex items-center justify-center gap-3">
                       <FaClock/> Candidatura em Análise
@@ -1301,7 +1351,7 @@ function Dashboard() {
                 
                 <div className="text-center mb-8 pt-6">
                   <div className="w-28 h-28 bg-[#1c2b36] text-white rounded-3xl flex items-center justify-center text-5xl font-extrabold mx-auto mb-6 shadow-xl transform rotate-3">
-                    <div className="-rotate-3">{viewStudent.nome?.charAt(0).toUpperCase() || 'A'}</div>
+                    <div className="-rotate-3">{(viewStudent.nome || 'A').charAt(0).toUpperCase()}</div>
                   </div>
                   <h2 className="text-2xl font-extrabold text-gray-900">{viewStudent.nome}</h2>
                   <p className="text-sm font-bold text-blue-600 mt-1">{viewStudent.email}</p>
