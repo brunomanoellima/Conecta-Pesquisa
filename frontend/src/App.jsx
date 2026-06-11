@@ -5,7 +5,7 @@ import {
   FaUserGraduate, FaEnvelope, FaTimes, FaUniversity, FaBuilding,
   FaClipboardList, FaUsers, FaRocket, FaUserCircle, FaPowerOff, 
   FaBullhorn, FaPaperPlane, FaTrash, FaPlus, FaListUl, FaCheckCircle, FaEdit, FaBan, FaCheck,
-  FaExclamationTriangle, FaQuestionCircle, FaInfoCircle, FaSpinner, FaEye, FaEyeSlash, FaFilter, FaArrowRight, FaEllipsisV
+  FaExclamationTriangle, FaQuestionCircle, FaInfoCircle, FaSpinner, FaEye, FaEyeSlash, FaFilter, FaArrowRight, FaEllipsisV, FaUser
 } from 'react-icons/fa';
 import Slider from "react-slick"; 
 import api from './api';
@@ -618,15 +618,14 @@ function Dashboard() {
       {tab === 'inicio' && (
         <>
           <div 
-            className="pt-32 pb-16 px-4 md:px-12 relative overflow-hidden min-h-[500px] flex items-center bg-[#E2E8F0]"
+            className="pt-48 pb-24 px-4 md:px-12 relative overflow-hidden min-h-[650px] flex items-center bg-[#E2E8F0]"
             style={{
               backgroundImage: user.role === 'discente' ? "url('/imagens/fundo-aluno.png')" : "url('/imagens/fundo-professor.png')",
               backgroundSize: 'cover',
-              backgroundPosition: 'center',
+              backgroundPosition: 'center top',
               backgroundRepeat: 'no-repeat'
             }}
           >
-            {/* Overlay em degradê branco para garantir que o texto não suma na imagem */}
             <div className="absolute inset-0 bg-gradient-to-r from-[#F0F4F8] via-[#F0F4F8]/80 to-transparent z-0"></div>
             
             <div className="max-w-[1400px] mx-auto w-full relative z-10 grid md:grid-cols-2 gap-12 items-center">
@@ -892,11 +891,6 @@ function Dashboard() {
                   </div>
                   
                   <div className="space-y-8">
-                    {(data.projects || []).length === 0 && (
-                      <div className="text-center py-20 bg-white rounded-2xl border border-dashed border-gray-300">
-                        <p className="text-gray-500 font-bold text-lg">Você ainda não criou nenhum projeto.</p>
-                      </div>
-                    )}
                     {(data.projects || []).map(p => (
                       <div key={p.id} className="bg-white rounded-[2rem] shadow-lg border border-gray-100 overflow-hidden">
                         <div className="p-8 border-b border-gray-100 bg-gray-50 flex justify-between items-center">
@@ -909,7 +903,7 @@ function Dashboard() {
                           </span>
                         </div>
                         
-                        <div className="p-8 grid md:grid-cols-2 gap-8">
+                        <div className="p-8 grid lg:grid-cols-2 gap-8">
                           <div>
                             <h4 className="text-sm font-extrabold text-gray-500 uppercase tracking-widest mb-6 border-b pb-2">Membros Aprovados</h4>
                             <div className="space-y-4 max-h-[400px] overflow-y-auto pr-2 custom-scrollbar">
@@ -917,7 +911,7 @@ function Dashboard() {
                                 (p.applications || []).filter(a => a.status === 'ACEITA').map(m => (
                                   <div key={m.id} className="flex items-center justify-between p-4 rounded-2xl border border-gray-100 bg-white hover:shadow-md transition">
                                     <div className="flex items-center gap-3 cursor-pointer" onClick={() => setViewStudent(m.discente)}>
-                                      <div className="w-10 h-10 bg-gray-100 text-gray-600 rounded-xl flex items-center justify-center font-extrabold">{m.discente?.nome?.charAt(0) || 'A'}</div>
+                                      <div className="w-10 h-10 bg-gray-100 text-[#1c2b36] rounded-xl flex items-center justify-center font-extrabold">{m.discente?.nome?.charAt(0) || 'A'}</div>
                                       <div><p className="font-bold text-sm text-gray-900">{m.discente?.nome}</p></div>
                                     </div>
                                     <button onClick={() => manageApp(m.id, 'RECUSADA', true)} className="text-red-500 hover:bg-red-50 p-2 rounded-lg transition" title="Remover"><FaTimes/></button>
@@ -951,23 +945,23 @@ function Dashboard() {
               {tab === 'candidaturas' && (
                 <div className="max-w-6xl mx-auto bg-white rounded-[2rem] shadow-lg border border-gray-100 overflow-hidden">
                   <div className="bg-[#243B53] p-8 text-white">
-                      <h3 className="text-2xl font-extrabold">Minhas Candidaturas</h3>
+                      <h3 className="text-2xl font-extrabold">{user.role === 'discente' ? 'Minhas Candidaturas' : 'Gerenciar Candidaturas'}</h3>
                   </div>
                   <div className="divide-y divide-gray-100 p-4">
-                      {(data.applications || []).length === 0 ? <p className="text-center py-12 text-gray-400 font-bold">Nenhum registro.</p> : 
+                      {(data.applications || []).length === 0 ? <p className="text-center py-12 text-gray-400 font-bold">Nenhum registro encontrado.</p> : 
                         (data.applications || []).map(app => (
                           <div key={app.id} className="p-6 hover:bg-gray-50 transition flex flex-col md:flex-row justify-between items-center gap-4 rounded-xl">
-                              <div className="flex-1">
+                              <div className="flex-1 w-full">
                                   <p className="font-extrabold text-gray-900 text-lg">{app.project?.titulo}</p>
-                                  {user.role === 'docente' && <p className="text-sm text-blue-600 font-bold cursor-pointer mt-1" onClick={() => setViewStudent(app.discente)}>Candidato: {app.discente?.nome}</p>}
-                                  <p className="text-sm text-gray-500 mt-2">"{app.mensagem}"</p>
+                                  {user.role === 'docente' && <p className="text-sm text-blue-600 font-bold cursor-pointer mt-1 flex items-center gap-2" onClick={() => setViewStudent(app.discente)}><FaUserCircle/> Candidato: {app.discente?.nome}</p>}
+                                  <p className="text-sm text-gray-500 mt-3 bg-gray-100 p-3 rounded-xl border border-gray-200 italic">"{app.mensagem}"</p>
                               </div>
-                              <div className="flex flex-col items-end gap-3">
+                              <div className="flex flex-col items-end gap-3 w-full md:w-auto mt-4 md:mt-0">
                                   <StatusBadge status={app.status} />
                                   {user.role === 'docente' && app.status === 'PENDENTE' && (
-                                      <div className="flex gap-2">
-                                          <button onClick={()=>manageApp(app.id, 'ACEITA')} className="bg-green-600 text-white px-4 py-2 rounded-lg text-xs font-bold hover:bg-green-700">Aprovar</button>
-                                          <button onClick={()=>manageApp(app.id, 'RECUSADA')} className="border border-red-200 text-red-600 px-4 py-2 rounded-lg text-xs font-bold hover:bg-red-50">Recusar</button>
+                                      <div className="flex gap-2 w-full">
+                                          <button onClick={()=>manageApp(app.id, 'ACEITA')} className="flex-1 bg-green-600 text-white px-6 py-2.5 rounded-xl text-sm font-bold hover:bg-green-700 shadow-md">Aprovar</button>
+                                          <button onClick={()=>manageApp(app.id, 'RECUSADA')} className="flex-1 border-2 border-red-200 text-red-600 px-6 py-2.5 rounded-xl text-sm font-bold hover:bg-red-50">Recusar</button>
                                       </div>
                                   )}
                               </div>
@@ -979,30 +973,67 @@ function Dashboard() {
 
               {/* ABA PERFIL */}
               {tab === 'perfil' && user.role === 'discente' && (
-                <form onSubmit={saveProfile} className="bg-white p-8 md:p-12 rounded-[2rem] shadow-lg border border-gray-100 max-w-4xl mx-auto">
-                  <h3 className="font-extrabold text-3xl mb-8 text-gray-900">Meu Perfil</h3>
+                <form onSubmit={saveProfile} className="bg-white p-8 md:p-12 rounded-[2rem] shadow-lg border border-gray-100 max-w-4xl mx-auto animate-fadeIn relative overflow-hidden">
+                  <div className="absolute top-0 left-0 w-full h-3 bg-[#1c2b36]"></div>
+                  <h3 className="font-extrabold text-3xl mb-8 text-gray-900 pb-4 border-b-2 border-gray-100 flex items-center gap-4">
+                    <div className="bg-blue-50 p-3 rounded-2xl text-[#1c2b36]"><FaUserGraduate /></div> Meu Perfil
+                  </h3>
+                  
                   <div className="grid md:grid-cols-2 gap-8 mb-8">
-                    <div><label className="block text-sm font-bold text-gray-900 mb-2">Curso</label><input name="curso" defaultValue={data.profile?.curso || ''} className="w-full border-2 border-gray-200 p-4 rounded-xl bg-gray-50 outline-none" /></div>
-                    <div><label className="block text-sm font-bold text-gray-900 mb-2">Campus</label><input name="campus" defaultValue={data.profile?.campus || ''} className="w-full border-2 border-gray-200 p-4 rounded-xl bg-gray-50 outline-none" /></div>
                     <div>
-                      <label className="block text-sm font-bold text-gray-900 mb-2">Período</label>
-                      <select name="periodo" defaultValue={data.profile?.periodo || ''} className="w-full border-2 border-gray-200 p-4 rounded-xl bg-gray-50 outline-none font-bold">
-                        <option value="">Selecione...</option>
+                      <label className="block text-sm font-bold text-gray-900 mb-2">Curso Acadêmico</label>
+                      <input name="curso" defaultValue={data.profile?.curso || ''} className="w-full border-2 border-gray-200 p-4 rounded-2xl bg-gray-50 focus:bg-white focus:border-[#1c2b36] outline-none transition font-medium" placeholder="Ex: Engenharia de Software" />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-bold text-gray-900 mb-2">Campus</label>
+                      <input name="campus" defaultValue={data.profile?.campus || ''} className="w-full border-2 border-gray-200 p-4 rounded-2xl bg-gray-50 focus:bg-white focus:border-[#1c2b36] outline-none transition font-medium" placeholder="Ex: Campus Central" />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-bold text-gray-900 mb-2">Período Atual</label>
+                      <select name="periodo" defaultValue={data.profile?.periodo || ''} className="w-full border-2 border-gray-200 p-4 rounded-2xl bg-gray-50 focus:bg-white focus:border-[#1c2b36] outline-none transition font-bold text-gray-700 cursor-pointer">
+                        <option value="">Selecione seu período...</option>
                         {[...Array(10)].map((_, i) => <option key={i} value={`${i+1}º`}>{i+1}º Período</option>)}
                         <option value="Finalista">Finalista</option>
                       </select>
                     </div>
-                    <div><label className="block text-sm font-bold text-gray-900 mb-2">Telefone</label><input name="telefone" defaultValue={data.profile?.telefone || ''} className="w-full border-2 border-gray-200 p-4 rounded-xl bg-gray-50 outline-none" /></div>
-                  </div>
-                  <div className="mb-10 bg-gray-50 p-6 rounded-2xl border border-gray-100">
-                    <label className="block text-sm font-extrabold text-gray-900 mb-3">Habilidades</label>
-                    <div className="flex gap-3 mb-4">
-                      <input value={skillInput} onChange={e => setSkillInput(e.target.value)} className="w-full border-2 border-gray-200 p-3 rounded-xl outline-none" placeholder="Ex: Python..." onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); addSkill(e); } }}/>
-                      <button type="button" onClick={addSkill} className="bg-[#243B53] text-white px-6 py-3 rounded-xl font-bold">Adicionar</button>
+                    <div>
+                      <label className="block text-sm font-bold text-gray-900 mb-2">Telefone / WhatsApp</label>
+                      <input name="telefone" defaultValue={data.profile?.telefone || ''} className="w-full border-2 border-gray-200 p-4 rounded-2xl bg-gray-50 focus:bg-white focus:border-[#1c2b36] outline-none transition font-medium" placeholder="(00) 00000-0000" />
                     </div>
-                    <div className="flex flex-wrap gap-2">{skillsList.map((skill, index) => (<span key={index} className="bg-white border border-gray-200 px-4 py-2 rounded-lg text-sm font-bold flex gap-2">{skill} <button type="button" onClick={() => removeSkill(index)} className="text-red-400"><FaTimes/></button></span>))}</div>
                   </div>
-                  <button type="submit" disabled={isSubmitting} className="bg-green-600 text-white w-full py-4 rounded-2xl font-bold text-lg shadow-lg hover:bg-green-700">Salvar Perfil</button>
+
+                  <div className="mb-10 bg-gray-50 p-6 rounded-[2rem] border-2 border-gray-100">
+                    <label className="block text-sm font-extrabold text-gray-900 mb-3 flex items-center gap-2"><FaRocket className="text-blue-500"/> Minhas Habilidades</label>
+                    <p className="text-sm text-gray-500 font-medium mb-4">Adicione ferramentas, linguagens ou competências que você domina.</p>
+                    <div className="flex flex-col sm:flex-row gap-3 mb-4">
+                      <input value={skillInput} onChange={e => setSkillInput(e.target.value)} className="w-full border-2 border-gray-200 p-4 rounded-2xl bg-white focus:border-[#1c2b36] outline-none transition font-medium" placeholder="Ex: Python, React, Gestão de Projetos..." onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); addSkill(e); } }}/>
+                      <button type="button" onClick={addSkill} className="bg-[#1c2b36] text-white px-8 py-4 rounded-2xl font-bold hover:bg-gray-900 transition shadow-md whitespace-nowrap">Adicionar</button>
+                    </div>
+                    <div className="flex flex-wrap gap-2 min-h-[60px] p-4 bg-white border-2 border-dashed border-gray-200 rounded-2xl">
+                      {skillsList.length === 0 ? <p className="text-sm text-gray-400 font-medium italic w-full text-center mt-2">Nenhuma habilidade adicionada ainda.</p> : null}
+                      {skillsList.map((skill, index) => (
+                          <span key={index} className="bg-[#1c2b36] text-white px-4 py-2 rounded-xl text-sm font-bold flex items-center gap-3 shadow-sm">
+                            {skill}
+                            <button type="button" onClick={() => removeSkill(index)} className="text-gray-300 hover:text-red-400 transition"><FaTimes/></button>
+                          </span>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div className="grid md:grid-cols-2 gap-8 mb-10">
+                    <div className="relative">
+                      <label className="block text-sm font-bold text-gray-900 mb-2 flex items-center gap-2"><FaFileAlt className="text-gray-500"/> Link do Currículo Lattes</label>
+                      <input name="link_lattes" defaultValue={data.profile?.link_lattes || ''} className="w-full border-2 border-gray-200 p-4 rounded-2xl bg-gray-50 focus:bg-white focus:border-[#1c2b36] outline-none transition font-medium text-blue-600" placeholder="https://lattes.cnpq.br/..." />
+                    </div>
+                    <div className="relative">
+                      <label className="block text-sm font-bold text-gray-900 mb-2 flex items-center gap-2"><FaGithub className="text-gray-500"/> Link do GitHub / Portfólio</label>
+                      <input name="link_github" defaultValue={data.profile?.link_github || ''} className="w-full border-2 border-gray-200 p-4 rounded-2xl bg-gray-50 focus:bg-white focus:border-[#1c2b36] outline-none transition font-medium text-blue-600" placeholder="https://github.com/..." />
+                    </div>
+                  </div>
+
+                  <button type="submit" disabled={isSubmitting} className="bg-green-600 text-white w-full py-4 rounded-2xl font-bold text-lg shadow-lg hover:bg-green-700 transition flex items-center justify-center gap-2">
+                    {isSubmitting ? <><FaSpinner className="animate-spin" /> Salvando...</> : 'Salvar Alterações do Perfil'}
+                  </button>
                 </form>
               )}
             </>
@@ -1016,61 +1047,73 @@ function Dashboard() {
           {projectModalData && (
             <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex justify-center items-center z-[100] p-4 transition-opacity">
               <form onSubmit={saveProject} className="bg-white p-8 md:p-10 rounded-[2rem] shadow-2xl w-full max-w-3xl max-h-[90vh] overflow-y-auto relative animate-slideIn custom-scrollbar">
-                <button type="button" onClick={() => setProjectModalData(null)} className="absolute top-6 right-6 text-gray-400 hover:text-gray-800 transition bg-gray-100 p-2 rounded-xl"><FaTimes size={18} /></button>
-                <h3 className="font-extrabold text-3xl mb-8 text-[#1c2b36] border-b-2 border-gray-100 pb-4">{projectModalData.id ? 'Editar Projeto' : 'Criar Novo Projeto'}</h3>
+                <button type="button" onClick={() => setProjectModalData(null)} className="absolute top-6 right-6 text-gray-400 hover:text-gray-800 transition bg-gray-100 p-2 rounded-xl">
+                  <FaTimes size={18} />
+                </button>
+                
+                <h3 className="font-extrabold text-3xl mb-8 text-[#1c2b36] border-b-2 border-gray-100 pb-4">
+                  {projectModalData.id ? 'Editar Projeto' : 'Criar Novo Projeto'}
+                </h3>
                 
                 <div className="space-y-6">
                   <div>
-                    <label className="block text-sm font-bold text-[#1c2b36] mb-2">Título do Projeto</label>
-                    <input name="titulo" defaultValue={projectModalData.titulo} required className="w-full border-2 border-gray-200 p-4 rounded-2xl bg-gray-50 focus:bg-white focus:border-[#1c2b36] outline-none transition font-medium text-lg" />
+                    <label className="block text-sm font-bold text-gray-900 mb-2">Título do Projeto</label>
+                    <input name="titulo" defaultValue={projectModalData.titulo} required className="w-full border-2 border-gray-200 p-4 rounded-2xl bg-gray-50 focus:bg-white focus:border-[#1c2b36] outline-none transition font-medium text-lg" placeholder="Ex: Impactos da IA na Educação..." />
                   </div>
+                  
                   <div>
-                    <label className="block text-sm font-bold text-[#1c2b36] mb-2">Descrição Detalhada</label>
-                    <textarea name="descricao" defaultValue={projectModalData.descricao} required className="w-full border-2 border-gray-200 p-4 rounded-2xl bg-gray-50 focus:bg-white focus:border-[#1c2b36] outline-none transition h-32 resize-none font-medium" />
+                    <label className="block text-sm font-bold text-gray-900 mb-2">Descrição Detalhada</label>
+                    <textarea name="descricao" defaultValue={projectModalData.descricao} required className="w-full border-2 border-gray-200 p-4 rounded-2xl bg-gray-50 focus:bg-white focus:border-[#1c2b36] outline-none transition h-32 resize-none font-medium" placeholder="Explique os detalhes, metodologia e o que espera alcançar..." />
                   </div>
                   
                   <div className="grid md:grid-cols-2 gap-6">
                     <div className="bg-gray-50 p-6 rounded-[2rem] border-2 border-gray-100">
-                      <label className="block text-sm font-extrabold text-gray-900 mb-3"><FaListUl className="inline mr-2 text-blue-500"/> Objetivos</label>
-                      <div className="flex gap-2 mb-4">
-                        <input value={objInput} onChange={e => setObjInput(e.target.value)} className="w-full border-2 border-gray-200 p-3 rounded-xl outline-none focus:border-[#1c2b36]" onKeyDown={e => { if(e.key === 'Enter'){ e.preventDefault(); addObj(e); } }}/>
-                        <button type="button" onClick={addObj} className="bg-[#1c2b36] text-white px-4 rounded-xl font-bold"><FaPlus/></button>
+                      <label className="block text-sm font-extrabold text-gray-900 mb-3 flex items-center gap-2"><FaListUl className="text-blue-500"/> Objetivos do Projeto</label>
+                      <div className="flex flex-col gap-3 mb-2">
+                        <input value={objInput} onChange={e => setObjInput(e.target.value)} className="w-full border-2 border-gray-200 p-3.5 rounded-xl bg-white outline-none focus:border-[#1c2b36] transition font-medium" placeholder="Ex: Desenvolver MVP..." onKeyDown={e => { if(e.key === 'Enter'){ e.preventDefault(); addObj(e); } }}/>
+                        <button type="button" onClick={addObj} className="bg-[#1c2b36] text-white w-full py-3 rounded-xl font-bold hover:bg-gray-900 transition flex justify-center items-center gap-2"><FaPlus/> Adicionar Objetivo</button>
                       </div>
-                      <ul className="space-y-2">{objList.map((x,i) => <li key={i} className="flex justify-between items-center bg-white border border-gray-200 p-3 rounded-xl text-sm font-medium">{x} <button type="button" onClick={()=>removeObj(i)} className="text-red-400"><FaTimes/></button></li>)}</ul>
+                      {objList.length > 0 && <ul className="mt-4 space-y-2">{objList.map((x,i) => <li key={i} className="flex justify-between items-center bg-white border border-gray-200 p-3 rounded-xl font-medium text-sm text-gray-700">{x} <button type="button" onClick={()=>removeObj(i)} className="text-gray-300 hover:text-red-500 transition p-1"><FaTimes/></button></li>)}</ul>}
                     </div>
+
                     <div className="bg-gray-50 p-6 rounded-[2rem] border-2 border-gray-100">
-                      <label className="block text-sm font-extrabold text-gray-900 mb-3"><FaCheck className="inline mr-2 text-green-500"/> Pré-Requisitos</label>
-                      <div className="flex gap-2 mb-4">
-                        <input value={reqInput} onChange={e => setReqInput(e.target.value)} className="w-full border-2 border-gray-200 p-3 rounded-xl outline-none focus:border-[#1c2b36]" onKeyDown={e => { if(e.key === 'Enter'){ e.preventDefault(); addReq(e); } }}/>
-                        <button type="button" onClick={addReq} className="bg-[#1c2b36] text-white px-4 rounded-xl font-bold"><FaPlus/></button>
+                      <label className="block text-sm font-extrabold text-gray-900 mb-3 flex items-center gap-2"><FaCheck className="text-green-500"/> Pré-Requisitos para Alunos</label>
+                      <div className="flex flex-col gap-3 mb-2">
+                        <input value={reqInput} onChange={e => setReqInput(e.target.value)} className="w-full border-2 border-gray-200 p-3.5 rounded-xl bg-white outline-none focus:border-[#1c2b36] transition font-medium" placeholder="Ex: Conhecimento em Python..." onKeyDown={e => { if(e.key === 'Enter'){ e.preventDefault(); addReq(e); } }}/>
+                        <button type="button" onClick={addReq} className="bg-[#1c2b36] text-white w-full py-3 rounded-xl font-bold hover:bg-gray-900 transition flex justify-center items-center gap-2"><FaPlus/> Adicionar Requisito</button>
                       </div>
-                      <ul className="space-y-2">{reqList.map((x,i) => <li key={i} className="flex justify-between items-center bg-white border border-gray-200 p-3 rounded-xl text-sm font-medium">{x} <button type="button" onClick={()=>removeReq(i)} className="text-red-400"><FaTimes/></button></li>)}</ul>
+                      {reqList.length > 0 && <ul className="mt-4 space-y-2">{reqList.map((x,i) => <li key={i} className="flex justify-between items-center bg-white border border-gray-200 p-3 rounded-xl font-medium text-sm text-gray-700">{x} <button type="button" onClick={()=>removeReq(i)} className="text-gray-300 hover:text-red-500 transition p-1"><FaTimes/></button></li>)}</ul>}
                     </div>
                   </div>
 
-                  <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
-                    <div className="col-span-2 md:col-span-1">
-                      <label className="block text-sm font-bold text-[#1c2b36] mb-2">Tipo</label>
-                      <select name="tipo" defaultValue={projectModalData.tipo || 'PESQUISA'} className="w-full border-2 border-gray-200 p-4 rounded-2xl bg-gray-50 font-bold outline-none cursor-pointer focus:border-[#1c2b36]">
-                        <option value="PESQUISA">Pesquisa</option><option value="EXTENSAO">Extensão</option><option value="VOLUNTARIO">Voluntário</option>
-                      </select>
+                  <div className="grid grid-cols-2 gap-6">
+                    <div>
+                      <label className="block text-sm font-bold text-gray-900 mb-2">Campus de Realização</label>
+                      <input name="campus" defaultValue={projectModalData.campus} required className="w-full border-2 border-gray-200 p-4 rounded-2xl bg-gray-50 focus:bg-white focus:border-[#1c2b36] outline-none transition font-medium" placeholder="Ex: Campus Norte" />
                     </div>
-                    <div className="col-span-2 md:col-span-1">
-                      <label className="block text-sm font-bold text-[#1c2b36] mb-2">Campus</label>
-                      <input name="campus" defaultValue={projectModalData.campus} required className="w-full border-2 border-gray-200 p-4 rounded-2xl bg-gray-50 outline-none focus:border-[#1c2b36]" />
-                    </div>
-                    <div className="col-span-1">
-                      <label className="block text-sm font-bold text-[#1c2b36] mb-2">Horas</label>
-                      <input name="carga_horaria" type="number" defaultValue={projectModalData.carga_horaria} required className="w-full border-2 border-gray-200 p-4 rounded-2xl bg-gray-50 outline-none text-center focus:border-[#1c2b36]" />
-                    </div>
-                    <div className="col-span-1">
-                      <label className="block text-sm font-bold text-[#1c2b36] mb-2">Vagas</label>
-                      <input name="vagas_totais" type="number" min="1" defaultValue={projectModalData.vagas_totais} required className="w-full border-2 border-gray-200 p-4 rounded-2xl bg-gray-50 outline-none text-center focus:border-[#1c2b36]" />
+                    <div>
+                      <label className="block text-sm font-bold text-gray-900 mb-2">Carga Horária Total (h)</label>
+                      <input name="carga_horaria" type="number" defaultValue={projectModalData.carga_horaria} required className="w-full border-2 border-gray-200 p-4 rounded-2xl bg-gray-50 focus:bg-white focus:border-[#1c2b36] outline-none transition font-medium" placeholder="Ex: 40" />
                     </div>
                   </div>
-                  <div>
-                    <label className="block text-sm font-bold text-[#1c2b36] mb-2">Data Limite de Inscrição</label>
-                    <input name="prazo_inscricao" type="date" defaultValue={projectModalData.prazo_inscricao?.split('T')[0]} required className="w-full border-2 border-gray-200 p-4 rounded-2xl bg-gray-50 font-bold outline-none cursor-pointer focus:border-[#1c2b36]" />
+
+                  <div className="grid grid-cols-3 gap-6">
+                    <div className="col-span-1">
+                      <label className="block text-sm font-bold text-gray-900 mb-2">Tipo do Projeto</label>
+                      <select name="tipo" defaultValue={projectModalData.tipo || 'PESQUISA'} className="w-full border-2 border-gray-200 p-4 rounded-2xl bg-gray-50 focus:bg-white focus:border-[#1c2b36] outline-none transition font-bold text-gray-700 cursor-pointer">
+                        <option value="PESQUISA">Pesquisa</option>
+                        <option value="EXTENSAO">Extensão</option>
+                        <option value="VOLUNTARIO">Voluntário</option>
+                      </select>
+                    </div>
+                    <div className="col-span-1">
+                      <label className="block text-sm font-bold text-gray-900 mb-2">Total de Vagas</label>
+                      <input name="vagas_totais" type="number" min="1" defaultValue={projectModalData.vagas_totais} required className="w-full border-2 border-gray-200 p-4 rounded-2xl bg-gray-50 focus:bg-white focus:border-[#1c2b36] outline-none transition font-medium text-center" />
+                    </div>
+                    <div className="col-span-1">
+                      <label className="block text-sm font-bold text-gray-900 mb-2">Data Limite</label>
+                      <input name="prazo_inscricao" type="date" defaultValue={projectModalData.prazo_inscricao?.split('T')[0]} required className="w-full border-2 border-gray-200 p-4 rounded-2xl bg-gray-50 focus:bg-white focus:border-[#1c2b36] outline-none transition font-bold text-gray-700 cursor-pointer" />
+                    </div>
                   </div>
                 </div>
                 
@@ -1088,36 +1131,40 @@ function Dashboard() {
           {viewProj && (
             <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex justify-center items-center z-[100] p-4 transition-opacity">
               <div className="bg-white p-8 md:p-10 rounded-[2.5rem] shadow-2xl w-full max-w-4xl max-h-[90vh] overflow-y-auto relative animate-slideIn custom-scrollbar">
-                <button onClick={() => setViewProj(null)} className="absolute top-6 right-6 text-gray-400 hover:text-[#1c2b36] transition bg-gray-100 p-3 rounded-2xl"><FaTimes size={20} /></button>
+                <button onClick={() => setViewProj(null)} className="absolute top-6 right-6 text-gray-400 hover:text-gray-800 transition bg-gray-100 p-3 rounded-2xl">
+                  <FaTimes size={20} />
+                </button>
                 
-                <div className="mb-8 border-b-2 border-gray-100 pb-6 pr-12">
-                  <div className="mb-3 flex items-center gap-3">
-                    <span className="bg-[#1c2b36] text-white px-4 py-1.5 rounded-lg text-xs font-extrabold uppercase tracking-widest">{viewProj.tipo || 'PESQUISA'}</span>
-                    <StatusBadge status={viewProj.status} expired={checkExpired(viewProj.prazo_inscricao)} />
+                <div className="flex flex-col md:flex-row justify-between items-start mb-8 border-b-2 border-gray-100 pb-6 pr-12 gap-4">
+                  <div>
+                    <div className="mb-3 flex items-center gap-3">
+                      <span className="bg-[#1c2b36] text-white px-4 py-1.5 rounded-lg text-xs font-extrabold uppercase tracking-widest">{viewProj.tipo || 'PESQUISA'}</span>
+                      <StatusBadge status={viewProj.status} expired={checkExpired(viewProj.prazo_inscricao)} />
+                    </div>
+                    <h2 className="text-4xl font-extrabold text-gray-900 tracking-tight">{viewProj.titulo}</h2>
+                    <p className="text-base text-gray-600 mt-3 flex items-center gap-2 font-medium"><FaUserGraduate className="text-blue-500 text-lg"/> Orientador: <span className="font-bold text-gray-900">{viewProj.docente?.nome}</span></p>
                   </div>
-                  <h2 className="text-4xl font-extrabold text-[#1c2b36] tracking-tight">{viewProj.titulo}</h2>
-                  <p className="text-base text-gray-600 mt-3 flex items-center gap-2 font-medium"><FaUserGraduate className="text-blue-500 text-lg"/> Orientador: <span className="font-bold text-[#1c2b36]">{viewProj.docente?.nome}</span></p>
                 </div>
                 
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
-                  <div className="bg-gray-50 border-2 border-gray-100 p-5 rounded-2xl text-center"><p className="text-xs text-gray-500 font-extrabold uppercase tracking-widest mb-1">Campus</p><p className="font-extrabold text-xl text-[#1c2b36]">{viewProj.campus || '-'}</p></div>
-                  <div className="bg-gray-50 border-2 border-gray-100 p-5 rounded-2xl text-center"><p className="text-xs text-gray-500 font-extrabold uppercase tracking-widest mb-1">Carga Horária</p><p className="font-extrabold text-xl text-[#1c2b36]">{viewProj.carga_horaria}h</p></div>
+                  <div className="bg-gray-50 border-2 border-gray-100 p-5 rounded-2xl text-center"><p className="text-xs text-gray-500 font-extrabold uppercase tracking-widest mb-1">Campus</p><p className="font-extrabold text-xl text-gray-900">{viewProj.campus || '-'}</p></div>
+                  <div className="bg-gray-50 border-2 border-gray-100 p-5 rounded-2xl text-center"><p className="text-xs text-gray-500 font-extrabold uppercase tracking-widest mb-1">Carga Horária</p><p className="font-extrabold text-xl text-gray-900">{viewProj.carga_horaria}h</p></div>
                   <div className="bg-blue-50 border-2 border-blue-100 p-5 rounded-2xl text-center"><p className="text-xs text-blue-600 font-extrabold uppercase tracking-widest mb-1">Vagas Livres</p><p className="font-extrabold text-xl text-blue-900">{Math.max(0, viewProj.vagas_totais - viewProj.vagas_ocupadas)}</p></div>
-                  <div className="bg-gray-50 border-2 border-gray-100 p-5 rounded-2xl text-center"><p className="text-xs text-gray-500 font-extrabold uppercase tracking-widest mb-1">Ocupação</p><p className="font-extrabold text-xl text-[#1c2b36]">{viewProj.vagas_ocupadas}/{viewProj.vagas_totais}</p></div>
+                  <div className="bg-gray-50 border-2 border-gray-100 p-5 rounded-2xl text-center"><p className="text-xs text-gray-500 font-extrabold uppercase tracking-widest mb-1">Ocupação</p><p className="font-extrabold text-xl text-gray-900">{viewProj.vagas_ocupadas}/{viewProj.vagas_totais}</p></div>
                 </div>
                 
                 <div className="space-y-8 text-gray-800">
-                  <div className="bg-white border-2 border-gray-100 p-6 rounded-[2rem]">
-                    <h3 className="font-extrabold text-xl text-[#1c2b36] mb-4 flex items-center gap-3"><div className="bg-[#1c2b36] p-2 rounded-xl text-white"><FaFileAlt size={16}/></div> Resumo do Projeto</h3>
-                    <p className="leading-relaxed text-base font-medium text-gray-600">{viewProj.descricao}</p>
+                  <div>
+                    <h3 className="font-extrabold text-xl text-gray-900 mb-4 flex items-center gap-3"><div className="bg-[#1c2b36] p-2 rounded-xl text-white"><FaFileAlt size={16}/></div> Resumo do Projeto</h3>
+                    <p className="leading-relaxed bg-white border-2 border-gray-100 p-6 rounded-[2rem] text-base font-medium text-gray-600">{viewProj.descricao}</p>
                   </div>
                   <div className="grid md:grid-cols-2 gap-8">
                       <div className="bg-white border-2 border-gray-100 p-6 rounded-[2rem]">
-                        <h3 className="font-extrabold text-lg text-[#1c2b36] mb-4 flex items-center gap-2"><FaListUl className="text-blue-500"/> Objetivos Mapeados</h3>
+                        <h3 className="font-extrabold text-lg text-gray-900 mb-4 flex items-center gap-2"><FaListUl className="text-blue-500"/> Objetivos Mapeados</h3>
                         {renderList(viewProj.objetivos)}
                       </div>
                       <div className="bg-white border-2 border-gray-100 p-6 rounded-[2rem]">
-                        <h3 className="font-extrabold text-lg text-[#1c2b36] mb-4 flex items-center gap-2"><FaCheck className="text-green-500"/> Requisitos Exigidos</h3>
+                        <h3 className="font-extrabold text-lg text-gray-900 mb-4 flex items-center gap-2"><FaCheck className="text-green-500"/> Requisitos Exigidos</h3>
                         {renderList(viewProj.requisitos)}
                       </div>
                   </div>
@@ -1133,7 +1180,7 @@ function Dashboard() {
                   </div>
 
                   {user.role === 'discente' && !myStatusInProject(viewProj.id) && viewProj.status === 'ABERTO' && !checkExpired(viewProj.prazo_inscricao) && (
-                    <button onClick={() => { apply(viewProj.id); setViewProj(null); }} className="bg-[#1c2b36] text-white px-12 py-5 rounded-2xl font-bold hover:bg-[#1a2a3b] shadow-xl transition w-full md:w-auto text-lg flex items-center justify-center gap-3 hover:-translate-y-1">
+                    <button onClick={() => { apply(viewProj.id); setViewProj(null); }} className="bg-[#1c2b36] text-white px-12 py-5 rounded-2xl font-bold hover:bg-gray-900 shadow-xl transition w-full md:w-auto text-lg flex items-center justify-center gap-3 hover:-translate-y-1">
                       Quero me Candidatar <FaRocket/>
                     </button>
                   )}
@@ -1146,7 +1193,9 @@ function Dashboard() {
           {viewStudent && (
             <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex justify-center items-center z-[100] p-4 transition-opacity">
               <div className="bg-white p-8 md:p-10 rounded-[2.5rem] shadow-2xl w-full max-w-md relative animate-slideIn">
-                <button onClick={() => setViewStudent(null)} className="absolute top-6 right-6 text-gray-400 hover:text-gray-800 transition bg-gray-100 p-2 rounded-xl"><FaTimes size={18} /></button>
+                <button onClick={() => setViewStudent(null)} className="absolute top-6 right-6 text-gray-400 hover:text-gray-800 transition bg-gray-100 p-2 rounded-xl">
+                  <FaTimes size={18} />
+                </button>
                 
                 <div className="text-center mb-8 pt-6">
                   <div className="w-28 h-28 bg-[#1c2b36] text-white rounded-3xl flex items-center justify-center text-5xl font-extrabold mx-auto mb-6 shadow-xl transform rotate-3">
@@ -1194,7 +1243,7 @@ function Dashboard() {
                 </div>
                 <h3 className="font-extrabold text-2xl text-gray-900 mb-3">Tudo Certo!</h3>
                 <p className="text-gray-600 mb-8 font-medium">A operação foi salva com sucesso no sistema.</p>
-                <button onClick={() => setShowSuccessModal(false)} className="bg-[#1c2b36] text-white w-full py-4 rounded-2xl font-bold text-lg hover:bg-[#1a2a3b] transition shadow-lg">
+                <button onClick={() => setShowSuccessModal(false)} className="bg-[#1c2b36] text-white w-full py-4 rounded-2xl font-bold text-lg hover:bg-gray-900 transition shadow-lg">
                   Continuar
                 </button>
               </div>
