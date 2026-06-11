@@ -16,6 +16,7 @@ const PrivateRoute = ({ children }) => {
   return token ? children : <Navigate to="/" replace />;
 };
 
+
 // --- UTILITÁRIOS ---
 const checkExpired = (dateString) => {
   if (!dateString) return false;
